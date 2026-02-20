@@ -110,6 +110,23 @@ class SetupWizard(tk.Toplevel):
         tk.Label(self._content, text="KDF params: (Sprint 2 placeholder)", fg="gray").pack(anchor="w", pady=(12, 0))
         tk.Label(self._content, text="PBKDF2/scrypt/argon2 settings will appear in Sprint 2.", fg="gray").pack(anchor="w")
 
+    def get_partial_state(self) -> dict:
+        state = {}
+
+        # step 1 values
+        if hasattr(self, "pw1"):
+            state["pw_len"] = len(self.pw1.get())
+
+        # step 2 values
+        if hasattr(self, "db_var"):
+            state["db_path"] = self.db_var.get()
+
+        # step 3 values
+        if hasattr(self, "enc_var"):
+            state["enc_scheme"] = self.enc_var.get()
+
+        return state
+
     # ---------------- Navigation ----------------
 
     def _next(self):
