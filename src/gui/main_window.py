@@ -3,6 +3,7 @@ from tkinter import messagebox
 
 from src.gui.widgets.secure_table import SecureTable
 from src.gui.widgets.audit_log_viewer import AuditLogViewer
+from src.gui.setup_wizard import SetupWizard
 
 
 class MainWindow(tk.Tk):
@@ -15,6 +16,22 @@ class MainWindow(tk.Tk):
         self._create_menu()
         self._create_table()
         self._create_status_bar()
+
+        # Sprint 1: always show setup wizard as a stub for first-run flow (GUI-3)
+        self.after(100, self._show_setup_wizard)
+
+    def _show_setup_wizard(self):
+        wiz = SetupWizard(self)
+        self.wait_window(wiz)
+
+        if wiz.result is None:
+            # user cancelled setup
+            self.quit()
+            return
+
+        # Placeholder: just show what was chosen
+        r = wiz.result
+        self.status.config(text=f"Status: Locked | DB: {r.db_path} | ENC: {r.enc_scheme}")
 
     def _create_menu(self):
         menubar = tk.Menu(self)
@@ -49,7 +66,6 @@ class MainWindow(tk.Tk):
         self.table = SecureTable(self)
         self.table.pack(fill=tk.BOTH, expand=True)
 
-        # placeholder rows
         self.table.set_rows([
             (1, "Example Entry", "admin", "https://example.com")
         ])
