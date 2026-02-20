@@ -22,14 +22,30 @@ class MainWindow(tk.Tk):
 
     def _show_setup_wizard(self):
         wiz = SetupWizard(self)
+
+        # обновляем статус, пока мастер открыт
+        def poll():
+            if not wiz.winfo_exists():
+                return
+            st = wiz.get_partial_state()
+            parts = ["Status: Locked"]
+            if "db_path" in st:
+                parts.append(f"DB: {st['db_path']}")
+            if "enc_scheme" in st:
+                parts.append(f"ENC: {st['enc_scheme']}")
+            if "pw_len" in st:
+                parts.append(f"PW chars: {st['pw_len']}")
+            self.status.config(text=" | ".join(parts))
+            self.after(200, poll)
+
+        poll()
+
         self.wait_window(wiz)
 
         if wiz.result is None:
-            # user cancelled setup
             self.quit()
             return
 
-        # Placeholder: just show what was chosen
         r = wiz.result
         self.status.config(text=f"Status: Locked | DB: {r.db_path} | ENC: {r.enc_scheme}")
 
