@@ -56,7 +56,7 @@ flowchart LR
     CORE --> DB[Database Layer\nsrc/database]
     CORE --> EVT[Event Bus\nsrc/core/events.py]
     EVT --> GUI
-
+```
 ---
 
 ## CI
