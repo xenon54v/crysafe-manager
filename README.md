@@ -45,3 +45,14 @@ python -m pip install -r requirements.txt
 - **Model** → `src/database/`
 - **Core (controller-like)** → `src/core/`
 - **View** → `src/gui/`
+
+---
+
+## Architecture Diagram (MVC Flow)
+
+```mermaid
+flowchart LR
+    GUI[GUI Layer\nsrc/gui] --> CORE[Core Layer\nsrc/core]
+    CORE --> DB[Database Layer\nsrc/database]
+    CORE --> EVT[Event Bus\nsrc/core/events.py]
+    EVT --> GUI
