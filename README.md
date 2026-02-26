@@ -25,3 +25,15 @@ CryptoSafe Manager is a sprint-based educational project: a cross-platform passw
 6. **Import/Export** – structured import/export flows
 7. **Auto-lock** – inactivity timer + session integration
 8. **Packaging & Backup** – finalize backup/restore + Docker/build scripts
+
+---
+
+## Setup (Windows / PowerShell)
+
+Create virtual environment:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
