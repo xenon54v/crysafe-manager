@@ -32,7 +32,6 @@ CryptoSafe Manager is a sprint-based educational project: a cross-platform passw
 
 Create virtual environment:
 
-```markdown
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
