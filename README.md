@@ -56,3 +56,12 @@ flowchart LR
     CORE --> DB[Database Layer\nsrc/database]
     CORE --> EVT[Event Bus\nsrc/core/events.py]
     EVT --> GUI
+
+---
+
+## CI
+
+GitHub Actions runs tests automatically on every push:
+
+- Workflow: `.github/workflows/tests.yml`
+- Command: `python -m pytest`
