@@ -1,36 +1,46 @@
-﻿import tkinter as tk
+﻿import customtkinter as ctk
 
 
-class PasswordEntry(tk.Frame):
-    """
-    Masked password input with show/hide toggle.
-    """
+PINK = "#d98ca3"
+PINK_HOVER = "#c97c93"
 
+
+class PasswordEntry(ctk.CTkFrame):
     def __init__(self, master=None, **kwargs):
-        super().__init__(master)
+        super().__init__(master, fg_color="transparent")
 
-        self._var = tk.StringVar()
+        self.grid_columnconfigure(0, weight=1)
+
         self._shown = False
+        self._var = ctk.StringVar()
 
-        self.entry = tk.Entry(self, textvariable=self._var, show="*", **kwargs)
-        self.entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.entry = ctk.CTkEntry(self, textvariable=self._var, show="*", **kwargs)
+        self.entry.grid(row=0, column=0, sticky="ew", padx=(0, 10))
 
-        self.btn = tk.Button(self, text="Show", width=6, command=self.toggle)
-        self.btn.pack(side=tk.RIGHT)
+        self.button = ctk.CTkButton(
+            self,
+            text="Show",
+            width=70,
+            command=self.toggle,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white"
+        )
+        self.button.grid(row=0, column=1)
 
     def toggle(self):
         self._shown = not self._shown
         if self._shown:
-            self.entry.config(show="")
-            self.btn.config(text="Hide")
+            self.entry.configure(show="")
+            self.button.configure(text="Hide")
         else:
-            self.entry.config(show="*")
-            self.btn.config(text="Show")
+            self.entry.configure(show="*")
+            self.button.configure(text="Show")
 
-    def get(self) -> str:
+    def get(self):
         return self._var.get()
 
-    def set(self, value: str) -> None:
+    def set(self, value: str):
         self._var.set(value)
 
     def focus(self):

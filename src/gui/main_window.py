@@ -1,97 +1,105 @@
-﻿import tkinter as tk
-from tkinter import messagebox
+﻿import customtkinter as ctk
 
 from src.gui.widgets.secure_table import SecureTable
 from src.gui.widgets.audit_log_viewer import AuditLogViewer
 from src.gui.setup_wizard import SetupWizard
+from src.core.config import ConfigManager
+from src.database.db import Database
+from src.database.repo import VaultRepository
 
 
-class MainWindow(tk.Tk):
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
+
+
+PINK = "#d98ca3"
+PINK_HOVER = "#c97c93"
+
+
+class MainWindow(ctk.CTk):
     def __init__(self):
         super().__init__()
 
         self.title("CryptoSafe Manager - Sprint 1")
-        self.geometry("800x500")
+        self.geometry("1100x700")
 
-        self._create_menu()
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self._create_header()
         self._create_table()
         self._create_status_bar()
 
-        # Sprint 1: always show setup wizard as a stub for first-run flow (GUI-3)
         self.after(100, self._show_setup_wizard)
 
-    def _show_setup_wizard(self):
-        wiz = SetupWizard(self)
+    def _create_header(self):
+        self.header = ctk.CTkFrame(self, corner_radius=0)
+        self.header.grid(row=0, column=0, sticky="ew")
+        self.header.grid_columnconfigure(1, weight=1)
 
-        # обновляем статус, пока мастер открыт
-        def poll():
-            if not wiz.winfo_exists():
-                return
-            st = wiz.get_partial_state()
-            parts = ["Status: Locked"]
-            if "db_path" in st:
-                parts.append(f"DB: {st['db_path']}")
-            if "enc_scheme" in st:
-                parts.append(f"ENC: {st['enc_scheme']}")
-            if "pw_len" in st:
-                parts.append(f"PW chars: {st['pw_len']}")
-            self.status.config(text=" | ".join(parts))
-            self.after(200, poll)
+        self.title_label = ctk.CTkLabel(
+            self.header,
+            text="CryptoSafe Manager",
+            font=ctk.CTkFont(size=24, weight="bold")
+        )
+        self.title_label.grid(row=0, column=0, padx=20, pady=15, sticky="w")
 
-        poll()
+        self.logs_button = ctk.CTkButton(
+            self.header,
+            text="Logs",
+            width=100,
+            command=self._open_logs,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white"
+        )
+        self.logs_button.grid(row=0, column=2, padx=10, pady=15)
 
-        self.wait_window(wiz)
-
-        if wiz.result is None:
-            self.quit()
-            return
-
-        r = wiz.result
-        self.status.config(text=f"Status: Locked | DB: {r.db_path} | ENC: {r.enc_scheme}")
-
-    def _create_menu(self):
-        menubar = tk.Menu(self)
-
-        file_menu = tk.Menu(menubar, tearoff=0)
-        file_menu.add_command(label="New")
-        file_menu.add_command(label="Open")
-        file_menu.add_command(label="Backup")
-        file_menu.add_separator()
-        file_menu.add_command(label="Exit", command=self.quit)
-
-        edit_menu = tk.Menu(menubar, tearoff=0)
-        edit_menu.add_command(label="Add")
-        edit_menu.add_command(label="Edit")
-        edit_menu.add_command(label="Delete")
-
-        view_menu = tk.Menu(menubar, tearoff=0)
-        view_menu.add_command(label="Logs", command=self._open_logs)
-        view_menu.add_command(label="Settings")
-
-        help_menu = tk.Menu(menubar, tearoff=0)
-        help_menu.add_command(label="About", command=self._show_about)
-
-        menubar.add_cascade(label="File", menu=file_menu)
-        menubar.add_cascade(label="Edit", menu=edit_menu)
-        menubar.add_cascade(label="View", menu=view_menu)
-        menubar.add_cascade(label="Help", menu=help_menu)
-
-        self.config(menu=menubar)
+        self.settings_button = ctk.CTkButton(
+            self.header,
+            text="Settings",
+            width=100,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white"
+        )
+        self.settings_button.grid(row=0, column=3, padx=(0, 20), pady=15)
 
     def _create_table(self):
-        self.table = SecureTable(self)
-        self.table.pack(fill=tk.BOTH, expand=True)
+        self.table_frame = ctk.CTkFrame(self, corner_radius=18)
+        self.table_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=20)
+        self.table_frame.grid_rowconfigure(0, weight=1)
+        self.table_frame.grid_columnconfigure(0, weight=1)
+
+        self.table = SecureTable(self.table_frame)
+        self.table.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
         self.table.set_rows([
             (1, "Example Entry", "admin", "https://example.com")
         ])
 
     def _create_status_bar(self):
-        self.status = tk.Label(self, text="Status: Locked | Clipboard: --", anchor="w")
-        self.status.pack(fill=tk.X)
+        self.status_frame = ctk.CTkFrame(self, corner_radius=14)
+        self.status_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 15))
 
-    def _show_about(self):
-        messagebox.showinfo("About", "CryptoSafe Manager\nSprint 1 Foundation")
+        self.status = ctk.CTkLabel(
+            self.status_frame,
+            text="Status: Locked | Clipboard: --",
+            anchor="w",
+            font=ctk.CTkFont(size=13)
+        )
+        self.status.pack(fill="x", padx=14, pady=8)
+
+    def _show_setup_wizard(self):
+        wiz = SetupWizard(self)
+        self.wait_window(wiz)
+
+        if wiz.result is None:
+            self.destroy()
+            return
+
+        r = wiz.result
+        self.status.configure(text=f"Status: Locked | DB: {r.db_path} | ENC: {r.enc_scheme}")
 
     def _open_logs(self):
         AuditLogViewer(self)

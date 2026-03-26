@@ -1,23 +1,54 @@
-﻿import tkinter as tk
-from tkinter import ttk
+﻿import customtkinter as ctk
 
 
-class AuditLogViewer(tk.Toplevel):
-    """
-    Stub window for Sprint 5 audit log viewer.
-    """
+PINK = "#d98ca3"
+PINK_HOVER = "#c97c93"
 
+
+class AuditLogViewer(ctk.CTkToplevel):
     def __init__(self, master=None):
         super().__init__(master)
 
-        self.title("Audit Log (Stub)")
-        self.geometry("600x400")
+        self.title("Audit Log")
+        self.geometry("700x450")
 
-        label = tk.Label(self, text="Audit Log Viewer will be implemented in Sprint 5")
-        label.pack(pady=10)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
-        self.table = ttk.Treeview(self, columns=("Time", "Action", "Entry"), show="headings")
-        self.table.heading("Time", text="Time")
-        self.table.heading("Action", text="Action")
-        self.table.heading("Entry", text="Entry")
-        self.table.pack(fill=tk.BOTH, expand=True)
+        self.header = ctk.CTkFrame(self, corner_radius=0)
+        self.header.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
+
+        self.title_label = ctk.CTkLabel(
+            self.header,
+            text="Audit Log Viewer",
+            font=ctk.CTkFont(size=22, weight="bold")
+        )
+        self.title_label.pack(side="left", padx=20, pady=15)
+
+        self.close_button = ctk.CTkButton(
+            self.header,
+            text="Close",
+            width=100,
+            command=self.destroy,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white"
+        )
+        self.close_button.pack(side="right", padx=20, pady=15)
+
+        self.body = ctk.CTkFrame(self, corner_radius=16)
+        self.body.grid(row=1, column=0, sticky="nsew", padx=20, pady=20)
+
+        self.info_label = ctk.CTkLabel(
+            self.body,
+            text="Audit Log Viewer will be implemented in Sprint 5",
+            font=ctk.CTkFont(size=16)
+        )
+        self.info_label.pack(pady=(30, 10))
+
+        self.note_label = ctk.CTkLabel(
+            self.body,
+            text="This window is currently a styled placeholder.",
+            text_color="gray"
+        )
+        self.note_label.pack()

@@ -1,9 +1,14 @@
-﻿import tkinter as tk
-from tkinter import filedialog, messagebox
-from dataclasses import dataclass
+﻿from dataclasses import dataclass
 from pathlib import Path
+from tkinter import filedialog, messagebox
+
+import customtkinter as ctk
 
 from src.gui.widgets.password_entry import PasswordEntry
+
+
+PINK = "#d98ca3"
+PINK_HOVER = "#c97c93"
 
 
 @dataclass(frozen=True)
@@ -13,37 +18,60 @@ class SetupResult:
     enc_scheme: str
 
 
-class SetupWizard(tk.Toplevel):
-    """
-    First-run setup wizard (GUI-3).
-    Step 1: master password creation + confirmation
-    Step 2: database location selection
-    Step 3: encryption settings placeholder
-    """
-
+class SetupWizard(ctk.CTkToplevel):
     def __init__(self, master=None):
         super().__init__(master)
-        self.title("First-run Setup (Sprint 1)")
-        self.geometry("500x260")
+
+        self.title("First-run Setup")
+        self.geometry("560x360")
         self.resizable(False, False)
 
         self._step = 1
         self._result = None
 
-        self._content = tk.Frame(self)
-        self._content.pack(fill=tk.BOTH, expand=True, padx=12, pady=12)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
-        self._nav = tk.Frame(self)
-        self._nav.pack(fill=tk.X, padx=12, pady=(0, 12))
+        self.content = ctk.CTkFrame(self)
+        self.content.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
 
-        self.btn_back = tk.Button(self._nav, text="Back", width=10, command=self._back, state=tk.DISABLED)
-        self.btn_back.pack(side=tk.LEFT)
+        self.nav = ctk.CTkFrame(self, fg_color="transparent")
+        self.nav.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 20))
+        self.nav.grid_columnconfigure(1, weight=1)
 
-        self.btn_next = tk.Button(self._nav, text="Next", width=10, command=self._next)
-        self.btn_next.pack(side=tk.RIGHT)
+        self.back_button = ctk.CTkButton(
+            self.nav,
+            text="Back",
+            width=100,
+            command=self._back,
+            state="disabled",
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white"
+        )
+        self.back_button.grid(row=0, column=0, padx=(0, 10))
 
-        self.btn_cancel = tk.Button(self._nav, text="Cancel", width=10, command=self._cancel)
-        self.btn_cancel.pack(side=tk.RIGHT, padx=(0, 8))
+        self.cancel_button = ctk.CTkButton(
+            self.nav,
+            text="Cancel",
+            width=100,
+            command=self._cancel,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white"
+        )
+        self.cancel_button.grid(row=0, column=2, padx=(0, 10))
+
+        self.next_button = ctk.CTkButton(
+            self.nav,
+            text="Next",
+            width=100,
+            command=self._next,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white"
+        )
+        self.next_button.grid(row=0, column=3)
 
         self._render_step()
 
@@ -55,11 +83,12 @@ class SetupWizard(tk.Toplevel):
     def result(self):
         return self._result
 
-    # ---------------- Steps ----------------
+    def _clear_content(self):
+        for widget in self.content.winfo_children():
+            widget.destroy()
 
     def _render_step(self):
-        for w in self._content.winfo_children():
-            w.destroy()
+        self._clear_content()
 
         if self._step == 1:
             self._render_password_step()
@@ -68,81 +97,91 @@ class SetupWizard(tk.Toplevel):
         elif self._step == 3:
             self._render_enc_step()
 
-        self.btn_back.config(state=(tk.NORMAL if self._step > 1 else tk.DISABLED))
-        self.btn_next.config(text=("Finish" if self._step == 3 else "Next"))
+        self.back_button.configure(state="normal" if self._step > 1 else "disabled")
+        self.next_button.configure(text="Finish" if self._step == 3 else "Next")
 
     def _render_password_step(self):
-        tk.Label(self._content, text="Create Master Password", font=("Segoe UI", 12, "bold")).pack(anchor="w")
+        ctk.CTkLabel(
+            self.content,
+            text="Create Master Password",
+            font=ctk.CTkFont(size=20, weight="bold")
+        ).pack(anchor="w", pady=(10, 20))
 
-        tk.Label(self._content, text="Master password:").pack(anchor="w", pady=(12, 0))
-        self.pw1 = PasswordEntry(self._content)
-        self.pw1.pack(fill=tk.X)
+        ctk.CTkLabel(self.content, text="Master password").pack(anchor="w", pady=(0, 5))
+        self.pw1 = PasswordEntry(self.content)
+        self.pw1.pack(fill="x", pady=(0, 15))
 
-        tk.Label(self._content, text="Confirm password:").pack(anchor="w", pady=(10, 0))
-        self.pw2 = PasswordEntry(self._content)
-        self.pw2.pack(fill=tk.X)
+        ctk.CTkLabel(self.content, text="Confirm password").pack(anchor="w", pady=(0, 5))
+        self.pw2 = PasswordEntry(self.content)
+        self.pw2.pack(fill="x")
 
         self.pw1.focus()
 
     def _render_db_step(self):
-        tk.Label(self._content, text="Select Database Location", font=("Segoe UI", 12, "bold")).pack(anchor="w")
+        ctk.CTkLabel(
+            self.content,
+            text="Select Database Location",
+            font=ctk.CTkFont(size=20, weight="bold")
+        ).pack(anchor="w", pady=(10, 20))
 
-        tk.Label(self._content, text="Database file path:").pack(anchor="w", pady=(12, 0))
-        self.db_var = tk.StringVar(value=str(Path("data") / "cryptosafe_dev.db"))
+        self.db_var = ctk.StringVar(value=str(Path("data") / "cryptosafe_dev.db"))
 
-        row = tk.Frame(self._content)
-        row.pack(fill=tk.X, pady=(6, 0))
+        ctk.CTkLabel(self.content, text="Database file path").pack(anchor="w", pady=(0, 5))
 
-        tk.Entry(row, textvariable=self.db_var).pack(side=tk.LEFT, fill=tk.X, expand=True)
-        tk.Button(row, text="Browse...", command=self._browse_db).pack(side=tk.RIGHT, padx=(8, 0))
+        row = ctk.CTkFrame(self.content, fg_color="transparent")
+        row.pack(fill="x")
 
-        tk.Label(self._content, text="(Sprint 1: DB will be created automatically later.)", fg="gray").pack(anchor="w", pady=(10, 0))
+        entry = ctk.CTkEntry(row, textvariable=self.db_var)
+        entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
+
+        browse_btn = ctk.CTkButton(
+            row,
+            text="Browse...",
+            width=110,
+            command=self._browse_db,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white"
+        )
+        browse_btn.pack(side="right")
 
     def _render_enc_step(self):
-        tk.Label(self._content, text="Encryption Settings (Placeholder)", font=("Segoe UI", 12, "bold")).pack(anchor="w")
+        ctk.CTkLabel(
+            self.content,
+            text="Encryption Settings",
+            font=ctk.CTkFont(size=20, weight="bold")
+        ).pack(anchor="w", pady=(10, 20))
 
-        tk.Label(self._content, text="Encryption scheme:").pack(anchor="w", pady=(12, 0))
-        self.enc_var = tk.StringVar(value="XOR_PLACEHOLDER")
+        ctk.CTkLabel(self.content, text="Encryption scheme").pack(anchor="w", pady=(0, 5))
+        self.enc_var = ctk.StringVar(value="XOR_PLACEHOLDER")
+        self.enc_menu = ctk.CTkOptionMenu(
+            self.content,
+            values=["XOR_PLACEHOLDER"],
+            variable=self.enc_var,
+            fg_color=PINK,
+            button_color=PINK,
+            button_hover_color=PINK_HOVER,
+            text_color="white"
+        )
+        self.enc_menu.pack(anchor="w")
 
-        options = ["XOR_PLACEHOLDER"]  # Sprint 3 will add AES-GCM etc.
-        tk.OptionMenu(self._content, self.enc_var, *options).pack(anchor="w")
-
-        tk.Label(self._content, text="KDF params: (Sprint 2 placeholder)", fg="gray").pack(anchor="w", pady=(12, 0))
-        tk.Label(self._content, text="PBKDF2/scrypt/argon2 settings will appear in Sprint 2.", fg="gray").pack(anchor="w")
-
-    def get_partial_state(self) -> dict:
-        state = {}
-
-        # step 1 values
-        if hasattr(self, "pw1"):
-            state["pw_len"] = len(self.pw1.get())
-
-        # step 2 values
-        if hasattr(self, "db_var"):
-            state["db_path"] = self.db_var.get()
-
-        # step 3 values
-        if hasattr(self, "enc_var"):
-            state["enc_scheme"] = self.enc_var.get()
-
-        return state
-
-    # ---------------- Navigation ----------------
+        ctk.CTkLabel(
+            self.content,
+            text="Sprint 1 placeholder. AES-GCM will be added later.",
+            text_color="gray"
+        ).pack(anchor="w", pady=(20, 0))
 
     def _next(self):
-        if self._step == 1:
-            if not self._validate_password_step():
-                return
-        elif self._step == 2:
-            if not self._validate_db_step():
-                return
-        elif self._step == 3:
-            if not self._finish():
-                return
+        if self._step == 1 and not self._validate_password_step():
+            return
+        if self._step == 2 and not self._validate_db_step():
+            return
+        if self._step == 3:
+            self._finish()
+            return
 
-        if self._step < 3:
-            self._step += 1
-            self._render_step()
+        self._step += 1
+        self._render_step()
 
     def _back(self):
         if self._step > 1:
@@ -153,24 +192,23 @@ class SetupWizard(tk.Toplevel):
         self._result = None
         self.destroy()
 
-    # ---------------- Validators ----------------
-
-    def _validate_password_step(self) -> bool:
+    def _validate_password_step(self):
         p1 = self.pw1.get()
         p2 = self.pw2.get()
 
         if len(p1) < 6:
-            messagebox.showerror("Error", "Password must be at least 6 characters (Sprint 1 basic rule).")
+            messagebox.showerror("Error", "Password must be at least 6 characters.")
             return False
+
         if p1 != p2:
             messagebox.showerror("Error", "Passwords do not match.")
             return False
+
         return True
 
-    def _validate_db_step(self) -> bool:
-        path = self.db_var.get().strip()
-        if not path:
-            messagebox.showerror("Error", "Please select a database file path.")
+    def _validate_db_step(self):
+        if not self.db_var.get().strip():
+            messagebox.showerror("Error", "Please select a database path.")
             return False
         return True
 
@@ -183,15 +221,10 @@ class SetupWizard(tk.Toplevel):
         if filename:
             self.db_var.set(filename)
 
-    def _finish(self) -> bool:
-        master_password = self.pw1.get()
-        db_path = Path(self.db_var.get().strip())
-        enc_scheme = self.enc_var.get()
-
+    def _finish(self):
         self._result = SetupResult(
-            master_password=master_password,
-            db_path=db_path,
-            enc_scheme=enc_scheme
+            master_password=self.pw1.get(),
+            db_path=Path(self.db_var.get().strip()),
+            enc_scheme=self.enc_var.get()
         )
         self.destroy()
-        return True
