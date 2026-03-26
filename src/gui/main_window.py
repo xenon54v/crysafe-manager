@@ -20,6 +20,9 @@ class MainWindow(ctk.CTk):
     def __init__(self):
         super().__init__()
 
+        self.db = None
+        self.repo = None
+
         self.title("CryptoSafe Manager - Sprint 1")
         self.geometry("1100x700")
 
@@ -31,6 +34,7 @@ class MainWindow(ctk.CTk):
         self._create_status_bar()
 
         self.after(100, self._show_setup_wizard)
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _create_header(self):
         self.header = ctk.CTkFrame(self, corner_radius=0)
@@ -74,10 +78,6 @@ class MainWindow(ctk.CTk):
         self.table = SecureTable(self.table_frame)
         self.table.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
-        self.table.set_rows([
-            (1, "Example Entry", "admin", "https://example.com")
-        ])
-
     def _create_status_bar(self):
         self.status_frame = ctk.CTkFrame(self, corner_radius=14)
         self.status_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 15))
@@ -99,10 +99,25 @@ class MainWindow(ctk.CTk):
             return
 
         r = wiz.result
+
+        self.db = Database(r.db_path)
+        self.db.connect()
+
+        self.repo = VaultRepository(self.db)
+        self.repo.insert_sample_entries(r.master_password)
+
+        rows = self.repo.get_entries_for_table()
+        self.table.set_rows(rows)
+
         self.status.configure(text=f"Status: Locked | DB: {r.db_path} | ENC: {r.enc_scheme}")
 
     def _open_logs(self):
         AuditLogViewer(self)
+
+    def _on_close(self):
+        if self.db is not None:
+            self.db.close()
+        self.destroy()
 
 
 def run():
