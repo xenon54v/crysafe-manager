@@ -1,6 +1,7 @@
 ﻿from dataclasses import dataclass
 from pathlib import Path
 from tkinter import filedialog, messagebox
+from src.core.config import ConfigManager
 
 import customtkinter as ctk
 
@@ -124,7 +125,8 @@ class SetupWizard(ctk.CTkToplevel):
             font=ctk.CTkFont(size=20, weight="bold")
         ).pack(anchor="w", pady=(10, 20))
 
-        self.db_var = ctk.StringVar(value=str(Path("data") / "cryptosafe_dev.db"))
+        default_db_path = ConfigManager().load().db_path
+        self.db_var = ctk.StringVar(value=str(default_db_path))
 
         ctk.CTkLabel(self.content, text="Database file path").pack(anchor="w", pady=(0, 5))
 

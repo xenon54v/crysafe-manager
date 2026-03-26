@@ -9,14 +9,6 @@ from .models import CREATE_TABLES_SQL, CREATE_INDEXES_SQL, SCHEMA_VERSION
 
 
 class Database:
-    """
-    Thread-safe SQLite helper (DB-3).
-    Supports:
-      - schema initialization
-      - migration-ready structure via PRAGMA user_version
-      - basic connection management
-      - future backup/restore stubs (DB-4)
-    """
 
     def __init__(self, db_path: Path):
         self._db_path = db_path
@@ -54,11 +46,10 @@ class Database:
     def _set_user_version(self, version: int) -> None:
         self._connection.execute(f"PRAGMA user_version = {version};")
 
-    def execute(self, query: str, params: tuple = ()) -> sqlite3.Cursor:
-        with self._lock:
-            cursor = self._connection.execute(query, params)
-            self._connection.commit()
-            return cursor
+    def execute(self, query, params=()):
+        cursor = self._connection.execute(query, params)
+        self._connection.commit()
+        return cursor
 
     def close(self) -> None:
         if self._connection:

@@ -6,6 +6,7 @@ from src.gui.setup_wizard import SetupWizard
 from src.core.config import ConfigManager
 from src.database.db import Database
 from src.database.repo import VaultRepository
+from src.gui.add_entry_dialog import AddEntryDialog
 
 
 ctk.set_appearance_mode("dark")
@@ -22,6 +23,7 @@ class MainWindow(ctk.CTk):
 
         self.db = None
         self.repo = None
+        self.master_password = None
 
         self.title("CryptoSafe Manager - Sprint 1")
         self.geometry("1100x700")
@@ -76,8 +78,44 @@ class MainWindow(ctk.CTk):
         self.table_frame.grid_columnconfigure(0, weight=1)
 
         self.table = SecureTable(self.table_frame)
-        self.table.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.table.grid(row=0, column=0, sticky="nsew", padx=10, pady=(10, 5))
 
+        self.actions_frame = ctk.CTkFrame(self.table_frame, fg_color="transparent")
+        self.actions_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(5, 10))
+        self.actions_frame.grid_columnconfigure(0, weight=1)
+
+        self.add_button = ctk.CTkButton(
+            self.actions_frame,
+            text="Add",
+            width=110,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white",
+            command=self._add_entry
+        )
+        self.add_button.pack(side="left", padx=(0, 10))
+
+        self.edit_button = ctk.CTkButton(
+            self.actions_frame,
+            text="Edit",
+            width=110,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white",
+            command=self._edit_entry
+        )
+        self.edit_button.pack(side="left", padx=(0, 10))
+
+        self.delete_button = ctk.CTkButton(
+            self.actions_frame,
+            text="Delete",
+            width=110,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white",
+            command=self._delete_entry
+        )
+        self.delete_button.pack(side="left")
     def _create_status_bar(self):
         self.status_frame = ctk.CTkFrame(self, corner_radius=14)
         self.status_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 15))
@@ -103,6 +141,8 @@ class MainWindow(ctk.CTk):
         self.db = Database(r.db_path)
         self.db.connect()
 
+        self.master_password = r.master_password
+
         self.repo = VaultRepository(self.db)
         self.repo.insert_sample_entries(r.master_password)
 
@@ -118,6 +158,34 @@ class MainWindow(ctk.CTk):
         if self.db is not None:
             self.db.close()
         self.destroy()
+
+    def _add_entry(self):
+        dialog = AddEntryDialog(self)
+        self.wait_window(dialog)
+
+        if dialog.result is None:
+            return
+
+        r = dialog.result
+
+        self.repo.add_entry(
+            master_password=self.master_password,
+            title=r.title,
+            username=r.username,
+            password=r.password,
+            url=r.url,
+            notes=r.notes,
+            tags=r.tags
+        )
+
+        rows = self.repo.get_entries_for_table()
+        self.table.set_rows(rows)
+
+    def _edit_entry(self):
+        print("Edit entry clicked")
+
+    def _delete_entry(self):
+        print("Delete entry clicked")
 
 
 def run():
