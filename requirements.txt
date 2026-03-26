@@ -1,2 +1,5 @@
 ﻿pytest==9.0.2
 customtkinter
+argon2-cffi
+cryptography
+keyring
