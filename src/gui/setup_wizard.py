@@ -2,7 +2,7 @@
 from pathlib import Path
 from tkinter import filedialog, messagebox
 from src.core.config import ConfigManager
-from src.core.crypto.key_derevation import validate_password_strength
+from src.core.crypto.key_derevation import validate_password_strength, get_password_rule_status
 
 import customtkinter as ctk
 
@@ -25,7 +25,7 @@ class SetupWizard(ctk.CTkToplevel):
         super().__init__(master)
 
         self.title("First-run Setup")
-        self.geometry("560x360")
+        self.geometry("620x760")
         self.resizable(False, False)
 
         self._step = 1
@@ -105,19 +105,58 @@ class SetupWizard(ctk.CTkToplevel):
     def _render_password_step(self):
         ctk.CTkLabel(
             self.content,
-            text="Create Master Password",
+            text="Создание мастер-пароля",
             font=ctk.CTkFont(size=20, weight="bold")
-        ).pack(anchor="w", pady=(10, 20))
+        ).pack(anchor="w", pady=(10, 14))
 
-        ctk.CTkLabel(self.content, text="Master password").pack(anchor="w", pady=(0, 5))
+        ctk.CTkLabel(self.content, text="Мастер-пароль").pack(anchor="w", pady=(0, 5))
         self.pw1 = PasswordEntry(self.content)
-        self.pw1.pack(fill="x", pady=(0, 15))
+        self.pw1.pack(fill="x", pady=(0, 8))
 
-        ctk.CTkLabel(self.content, text="Confirm password").pack(anchor="w", pady=(0, 5))
+        ctk.CTkLabel(
+            self.content,
+            text="Требования к паролю:",
+            font=ctk.CTkFont(size=14, weight="bold")
+        ).pack(anchor="w", pady=(6, 6))
+
+        self.rules_frame = ctk.CTkFrame(self.content, fg_color="transparent")
+        self.rules_frame.pack(fill="x", pady=(0, 14))
+
+        self.rule_labels = {}
+        for rule_text in get_password_rule_status("").keys():
+            label = ctk.CTkLabel(
+                self.rules_frame,
+                text=f"- {rule_text}",
+                text_color="#d96c6c",
+                anchor="w",
+                font=ctk.CTkFont(size=13)
+            )
+            label.pack(anchor="w", pady=1)
+            self.rule_labels[rule_text] = label
+
+        ctk.CTkLabel(self.content, text="Подтверждение пароля").pack(anchor="w", pady=(0, 5))
         self.pw2 = PasswordEntry(self.content)
         self.pw2.pack(fill="x")
 
+        self._bind_password_tracking()
+        self._update_password_rules()
+
         self.pw1.focus()
+
+
+    def _bind_password_tracking(self):
+        self.pw1.entry.bind("<KeyRelease>", lambda event: self._update_password_rules())
+
+    def _update_password_rules(self):
+        password = self.pw1.get()
+        rules = get_password_rule_status(password)
+
+        for rule_text, ok in rules.items():
+            label = self.rule_labels[rule_text]
+            if ok:
+                label.configure(text=f"+ {rule_text}", text_color="#7ccf91")
+            else:
+                label.configure(text=f"- {rule_text}", text_color="#d96c6c")
 
     def _render_db_step(self):
         ctk.CTkLabel(
@@ -200,7 +239,7 @@ class SetupWizard(ctk.CTkToplevel):
         p2 = self.pw2.get()
 
         if p1 != p2:
-            messagebox.showerror("Error", "Passwords do not match.")
+            messagebox.showerror("Ошибка", "Пароли не совпадают.")
             return False
 
         result = validate_password_strength(p1)
@@ -212,7 +251,7 @@ class SetupWizard(ctk.CTkToplevel):
 
     def _validate_db_step(self):
         if not self.db_var.get().strip():
-            messagebox.showerror("Error", "Please select a database path.")
+            messagebox.showerror("Ошибка", "Выберите путь к БД.")
             return False
         return True
 

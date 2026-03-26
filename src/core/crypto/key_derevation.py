@@ -24,6 +24,7 @@ COMMON_WEAK_PATTERNS = {
     "admin123",
     "letmein",
     "welcome",
+    ""
 }
 
 
@@ -70,6 +71,22 @@ def validate_password_strength(password: str, policy: PasswordPolicy | None = No
 
     return PasswordCheckResult(True, "Password is strong enough.")
 
+def get_password_rule_status(password: str, policy: PasswordPolicy | None = None) -> dict[str, bool]:
+    policy = policy or PasswordPolicy()
+
+    if not isinstance(password, str):
+        password = ""
+
+    lowered = password.lower()
+
+    return {
+        f"Минимум {policy.min_length} символов": len(password) >= policy.min_length,
+        "Есть строчная буква": bool(re.search(r"[a-z]", password)) if policy.require_lowercase else True,
+        "Есть заглавная буква": bool(re.search(r"[A-Z]", password)) if policy.require_uppercase else True,
+        "Есть цифра": bool(re.search(r"\d", password)) if policy.require_digits else True,
+        "Есть специальный символ": bool(re.search(r"[^A-Za-z0-9]", password)) if policy.require_symbols else True,
+        "Пароль не слишком простой": lowered not in COMMON_WEAK_PATTERNS,
+    }
 
 # KDF / hashing params
 
