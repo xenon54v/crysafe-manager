@@ -2,6 +2,7 @@
 from pathlib import Path
 from tkinter import filedialog, messagebox
 from src.core.config import ConfigManager
+from src.core.crypto.key_derevation import validate_password_strength
 
 import customtkinter as ctk
 
@@ -198,12 +199,13 @@ class SetupWizard(ctk.CTkToplevel):
         p1 = self.pw1.get()
         p2 = self.pw2.get()
 
-        if len(p1) < 6:
-            messagebox.showerror("Error", "Password must be at least 6 characters.")
-            return False
-
         if p1 != p2:
             messagebox.showerror("Error", "Passwords do not match.")
+            return False
+
+        result = validate_password_strength(p1)
+        if not result.ok:
+            messagebox.showerror("Error", result.message)
             return False
 
         return True
