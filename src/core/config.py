@@ -31,12 +31,6 @@ class AppConfig:
 
 
 class ConfigManager:
-    """
-    Central config manager (ARC-2).
-    - Environment-specific defaults (CFG-3)
-    - No hardcoded secrets/keys (SEC-1)
-    - Ready to be backed by DB settings table later (CFG-2)
-    """
 
     def __init__(self, env: Environment | None = None) -> None:
         self._env = env or self._detect_env()

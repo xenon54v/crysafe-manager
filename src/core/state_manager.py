@@ -13,13 +13,6 @@ class SessionState:
 
 
 class StateManager:
-    """
-    Centralized application state (CFG-1).
-    Tracks:
-      - user session (locked/unlocked)
-      - clipboard placeholder
-      - inactivity timer (future auto-lock)
-    """
 
     def __init__(self) -> None:
         self._session = SessionState()

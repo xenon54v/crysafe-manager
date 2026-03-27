@@ -14,15 +14,10 @@ class VaultRepository:
         cursor = self.db.execute("SELECT COUNT(*) FROM vault_entries;")
         return cursor.fetchone()[0]
 
-    def _derive_sample_key(self, master_password: str) -> bytes:
-        sample_salt = b"sample_salt_1234"
-        return self.key_manager.derive_key(master_password, sample_salt)
-
     def insert_sample_entries(self, master_password: str) -> None:
         if self.count_entries() > 0:
             return
-
-        key = self._derive_sample_key(master_password)
+        self.key_manager.unlock_with_password(self.db, master_password)
         now = datetime.now().isoformat()
 
         samples = [
@@ -53,7 +48,7 @@ class VaultRepository:
         ]
 
         for item in samples:
-            encrypted_password = self.crypto.encrypt(item["password"].encode("utf-8"), key)
+            encrypted_password = self.crypto.encrypt(item["password"].encode("utf-8"), self.key_manager)
 
             self.db.execute(
                 """
@@ -83,8 +78,8 @@ class VaultRepository:
         notes: str,
         tags: str
     ) -> None:
-        key = self._derive_sample_key(master_password)
-        encrypted_password = self.crypto.encrypt(password.encode("utf-8"), key)
+        self.key_manager.unlock_with_password(self.db, master_password)
+        encrypted_password = self.crypto.encrypt(password.encode("utf-8"), self.key_manager)
         now = datetime.now().isoformat()
 
         self.db.execute(
