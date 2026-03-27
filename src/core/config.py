@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
@@ -13,10 +13,6 @@ class Environment(str, Enum):
 
 @dataclass(frozen=True)
 class EncryptionSettings:
-    """
-    Placeholder settings for Sprint 1.
-    Sprint 2/3 will replace these with real KDF params and AES-GCM settings.
-    """
     scheme: str = "XOR_PLACEHOLDER"   # Sprint 1 placeholder
     kdf: str = "PLACEHOLDER_KDF"      # Sprint 1 placeholder
     kdf_params: dict | None = None    # future-ready
@@ -31,13 +27,6 @@ class AppConfig:
 
 
 class ConfigManager:
-    """
-    Central config manager (ARC-2).
-    - Environment-specific defaults (CFG-3)
-    - No hardcoded secrets/keys (SEC-1)
-    - Ready to be backed by DB settings table later (CFG-2)
-    """
-
     def __init__(self, env: Environment | None = None) -> None:
         self._env = env or self._detect_env()
 
@@ -46,7 +35,6 @@ class ConfigManager:
         return Environment.PRODUCTION if raw == Environment.PRODUCTION.value else Environment.DEVELOPMENT
 
     def load(self) -> AppConfig:
-        # Default DB path depends on environment (CFG-3)
         default_db = Path("data") / ("cryptosafe_dev.db" if self._env == Environment.DEVELOPMENT else "cryptosafe.db")
 
         db_path = Path(os.getenv("CRYPTOSAFE_DB_PATH", str(default_db))).expanduser().resolve()

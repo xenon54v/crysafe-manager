@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -7,8 +7,6 @@ from collections import defaultdict
 import asyncio
 import inspect
 
-
-# ---------------- Base Event ----------------
 
 @dataclass(frozen=True)
 class Event:
@@ -19,8 +17,6 @@ class Event:
 def now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
-
-# ---------------- Concrete Events ----------------
 
 @dataclass(frozen=True)
 class EntryAdded(Event):
@@ -61,8 +57,6 @@ class ClipboardCleared(Event):
 
 Handler = Callable[[Event], Any]
 
-
-# ---------------- Event Bus ----------------
 
 class EventBus:
     def __init__(self) -> None:

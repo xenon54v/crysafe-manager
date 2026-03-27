@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import sqlite3
 import threading
@@ -54,8 +54,6 @@ class Database:
     def close(self) -> None:
         if self._connection:
             self._connection.close()
-
-    # -------- Sprint 8 stub --------
 
     def backup(self) -> None:
         raise NotImplementedError("Backup will be implemented in Sprint 8")
