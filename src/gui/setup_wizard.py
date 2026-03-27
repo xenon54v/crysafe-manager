@@ -2,8 +2,7 @@
 from pathlib import Path
 from tkinter import filedialog, messagebox
 from src.core.config import ConfigManager
-from src.core.crypto.key_derevation import validate_password_strength, get_password_rule_status
-
+from src.core.crypto.key_derivation import validate_password, get_password_rule_status
 import customtkinter as ctk
 
 from src.gui.widgets.password_entry import PasswordEntry
@@ -242,7 +241,7 @@ class SetupWizard(ctk.CTkToplevel):
             messagebox.showerror("Ошибка", "Пароли не совпадают.")
             return False
 
-        result = validate_password_strength(p1)
+        result = validate_password(p1)
         if not result.ok:
             messagebox.showerror("Error", result.message)
             return False

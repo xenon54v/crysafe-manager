@@ -13,11 +13,22 @@ from hashlib import pbkdf2_hmac
 # -------------------- Password Policy --------------------
 
 COMMON_WEAK_PATTERNS = {
-    "password",
-    "123456",
-    "qwerty",
-    "admin",
+    "Password!",
+    "Password0!",
+    "Password1!",
+    "Password123!",
+    "Qwerty123456!",
+    "12345678!",
+    "1234567890!",
+    "0987654321!",
+    "Qwerty111!",
+    "Qwerty123!",
+    "Admin000!",
+    "Admin123!",
+    "Myadmin1!",
+    "Loginlogin!",
 }
+
 
 
 @dataclass(frozen=True)
