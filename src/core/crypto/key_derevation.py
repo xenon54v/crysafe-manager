@@ -11,6 +11,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 
+# Password policy
+
 COMMON_WEAK_PATTERNS = {
     "password",
     "password123",
@@ -86,6 +88,8 @@ def get_password_rule_status(password: str, policy: PasswordPolicy | None = None
         "Пароль не слишком простой": lowered not in COMMON_WEAK_PATTERNS,
     }
 
+# KDF / hashing params
+
 @dataclass(frozen=True)
 class Argon2Settings:
     time_cost: int = 3
@@ -107,6 +111,8 @@ class AuthHashResult:
     hash: str
 
 
+# Key derivation service
+
 class KeyDerivationService:
     def __init__(
         self,
@@ -124,9 +130,13 @@ class KeyDerivationService:
             salt_len=self.argon2_settings.salt_len,
         )
 
+    # Salt generation
+
     def generate_salt(self, length: int | None = None) -> bytes:
         length = length or self.pbkdf2_settings.salt_length
         return os.urandom(length)
+
+    # Argon2 password hashing
 
     def create_auth_hash(self, password: str) -> AuthHashResult:
         return AuthHashResult(hash=self._password_hasher.hash(password))
@@ -138,6 +148,8 @@ class KeyDerivationService:
             # dummy constant-time compare to reduce trivial timing distinction in failure path
             secrets.compare_digest(b"fixed_dummy_a", b"fixed_dummy_a")
             return False
+
+    # PBKDF2 encryption key derivation
 
     def derive_encryption_key(self, password: str, salt: bytes) -> bytes:
         if not isinstance(password, str) or not password:

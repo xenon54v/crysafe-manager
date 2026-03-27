@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import secrets
 from typing import Optional
@@ -14,11 +14,20 @@ def _xor_bytes(data: bytes, key: bytes) -> bytes:
 
 
 def zero_bytes(buf: bytearray) -> None:
+    """
+    Best-effort memory zeroing (CRY-4).
+    Python doesn't guarantee true secure erasure, but we do a best-effort overwrite.
+    """
     for i in range(len(buf)):
         buf[i] = 0
 
 
 class AES256Placeholder(EncryptionService):
+    """
+    Sprint 1 placeholder. Uses XOR (NOT secure).
+    Sprint 3 will replace this with AES-GCM but keep the same interface.
+    """
+
     def encrypt(self, data: bytes, key: bytes) -> bytes:
         # In a real scheme we'd use nonce+AEAD. Here we add a random nonce as a stub.
         nonce = secrets.token_bytes(16)

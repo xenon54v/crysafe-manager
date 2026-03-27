@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import threading
 import time
@@ -13,6 +13,13 @@ class SessionState:
 
 
 class StateManager:
+    """
+    Centralized application state (CFG-1).
+    Tracks:
+      - user session (locked/unlocked)
+      - clipboard placeholder
+      - inactivity timer (future auto-lock)
+    """
 
     def __init__(self) -> None:
         self._session = SessionState()
@@ -20,6 +27,8 @@ class StateManager:
         self._clipboard_timer: Optional[threading.Timer] = None
         self._inactivity_timer: Optional[threading.Timer] = None
         self._lock = threading.Lock()
+
+    # -------- Session management --------
 
     def login(self, user: str) -> None:
         with self._lock:
@@ -33,6 +42,8 @@ class StateManager:
 
     def is_locked(self) -> bool:
         return self._session.locked
+
+    # -------- Clipboard placeholder --------
 
     def set_clipboard(self, value: str, timeout_seconds: int = 10) -> None:
         with self._lock:
@@ -50,6 +61,8 @@ class StateManager:
     def clear_clipboard(self) -> None:
         with self._lock:
             self._clipboard_content = None
+
+    # -------- Inactivity placeholder --------
 
     def start_inactivity_timer(self, timeout_seconds: int) -> None:
         with self._lock:
