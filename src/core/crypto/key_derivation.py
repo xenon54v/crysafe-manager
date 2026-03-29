@@ -27,8 +27,15 @@ COMMON_WEAK_PATTERNS = {
     "Admin123!",
     "Myadmin1!",
     "Loginlogin!",
+    ""
 }
-
+COMMON_WEAK_SUBSTRINGS = [
+    "password",
+    "qwerty",
+    "123456",
+    "admin",
+    "login",
+]
 
 
 @dataclass(frozen=True)
@@ -69,6 +76,14 @@ def validate_password(password: str, policy: PasswordPolicy | None = None) -> Pa
 
     if password.lower() in COMMON_WEAK_PATTERNS:
         return PasswordValidationResult(False, "Слишком простой пароль")
+
+    lowered = password.lower()
+
+    if lowered in COMMON_WEAK_PATTERNS:
+        return PasswordValidationResult(False, "Слишком простой пароль.")
+
+    if any(part in lowered for part in COMMON_WEAK_SUBSTRINGS):
+        return PasswordValidationResult(False, "Пароль содержит слишком простой шаблон.")
 
     return PasswordValidationResult(True, "OK")
 

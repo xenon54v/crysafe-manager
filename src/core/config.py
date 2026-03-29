@@ -13,10 +13,6 @@ class Environment(str, Enum):
 
 @dataclass(frozen=True)
 class EncryptionSettings:
-    """
-    Placeholder settings for Sprint 1.
-    Sprint 2/3 will replace these with real KDF params and AES-GCM settings.
-    """
     scheme: str = "XOR_PLACEHOLDER"   # Sprint 1 placeholder
     kdf: str = "PLACEHOLDER_KDF"      # Sprint 1 placeholder
     kdf_params: dict | None = None    # future-ready
@@ -40,8 +36,10 @@ class ConfigManager:
         return Environment.PRODUCTION if raw == Environment.PRODUCTION.value else Environment.DEVELOPMENT
 
     def load(self) -> AppConfig:
-        # Default DB path depends on environment (CFG-3)
-        default_db = Path("data") / ("cryptosafe_dev.db" if self._env == Environment.DEVELOPMENT else "cryptosafe.db")
+        project_root = Path(__file__).resolve().parents[2]
+        default_db = project_root / "data" / (
+            "cryptosafe_dev.db" if self._env == Environment.DEVELOPMENT else "cryptosafe.db"
+        )
 
         db_path = Path(os.getenv("CRYPTOSAFE_DB_PATH", str(default_db))).expanduser().resolve()
 
