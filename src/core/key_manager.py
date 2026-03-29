@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Optional
 
 from src.core.crypto.key_derivation import (
     AuthHashResult,
@@ -17,6 +18,8 @@ class DerivedKey:
 class KeyManager:
     def __init__(self) -> None:
         self._kdf = KeyDerivationService()
+        self._active_key: Optional[bytes] = None
+        self._active_salt: Optional[bytes] = None
 
     # -------- Password hashing / verification --------
 
@@ -29,6 +32,8 @@ class KeyManager:
     # -------- Encryption key derivation --------
 
     def generate_salt(self, length: int | None = None) -> bytes:
+        if length is None:
+            length = 16
         return self._kdf.generate_salt(length)
 
     def derive_key(self, password: str, salt: bytes) -> bytes:
@@ -39,10 +44,69 @@ class KeyManager:
         key = self.derive_key(password, salt)
         return DerivedKey(key=key, salt=salt)
 
+    # -------- Active key flow for current app logic --------
+
+    def unlock_with_password(self, db, password: str) -> bytes:
+        """
+        Временная рабочая логика для Sprint 1:
+        - ищем salt для master key в key_store
+        - если записи нет, создаём salt и сохраняем его
+        - производим ключ из master password и salt
+        - сохраняем ключ как активный в памяти
+        """
+        row = db.execute(
+            """
+            SELECT salt
+            FROM key_store
+            WHERE key_type = ?
+            LIMIT 1;
+            """,
+            ("master",)
+        ).fetchone()
+
+        if row is None:
+            salt = self.generate_salt()
+            db.execute(
+                """
+                INSERT INTO key_store (key_type, salt, hash, params)
+                VALUES (?, ?, ?, ?);
+                """,
+                ("master", salt, "", None)
+            )
+        else:
+            salt = row[0]
+
+        self._active_salt = salt
+        self._active_key = self.derive_key(password, salt)
+        return self._active_key
+
+    def get_active_key(self) -> bytes:
+        if self._active_key is None:
+            raise RuntimeError("Encryption key is not unlocked.")
+        return self._active_key
+
+    @property
+    def active_key(self) -> bytes:
+        return self.get_active_key()
+
+    @property
+    def active_salt(self) -> bytes:
+        if self._active_salt is None:
+            raise RuntimeError("Encryption salt is not initialized.")
+        return self._active_salt
+
+    def clear_active_key(self) -> None:
+        self._active_key = None
+        self._active_salt = None
+
     # -------- Storage hooks (Sprint 2 implementation point) --------
 
     def store_key(self) -> None:
-        raise NotImplementedError("store_key will be implemented as part of Sprint 2 key storage flow")
+        raise NotImplementedError(
+            "store_key will be implemented as part of Sprint 2 key storage flow"
+        )
 
     def load_key(self) -> None:
-        raise NotImplementedError("load_key will be implemented as part of Sprint 2 key storage flow")
+        raise NotImplementedError(
+            "load_key will be implemented as part of Sprint 2 key storage flow"
+        )

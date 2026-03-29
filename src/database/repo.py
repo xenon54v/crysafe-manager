@@ -17,7 +17,8 @@ class VaultRepository:
     def insert_sample_entries(self, master_password: str) -> None:
         if self.count_entries() > 0:
             return
-        self.key_manager.unlock_with_password(self.db, master_password)
+
+        active_key = self.key_manager.unlock_with_password(self.db, master_password)
         now = datetime.now().isoformat()
 
         samples = [
@@ -27,7 +28,7 @@ class VaultRepository:
                 "password": "mypassword123",
                 "url": "https://google.com",
                 "notes": "Личный аккаунт",
-                "tags": "mail,personal"
+                "tags": "mail,personal",
             },
             {
                 "title": "GitHub",
@@ -35,7 +36,7 @@ class VaultRepository:
                 "password": "github_secret_2025",
                 "url": "https://github.com",
                 "notes": "Учебный репозиторий",
-                "tags": "code,study"
+                "tags": "code,study",
             },
             {
                 "title": "Telegram",
@@ -43,12 +44,15 @@ class VaultRepository:
                 "password": "telegram_demo_pass",
                 "url": "https://web.telegram.org",
                 "notes": "Мессенджер",
-                "tags": "chat"
-            }
+                "tags": "chat",
+            },
         ]
 
         for item in samples:
-            encrypted_password = self.crypto.encrypt(item["password"].encode("utf-8"), self.key_manager)
+            encrypted_password = self.crypto.encrypt(
+                item["password"].encode("utf-8"),
+                active_key,
+            )
 
             self.db.execute(
                 """
@@ -64,8 +68,8 @@ class VaultRepository:
                     item["notes"],
                     item["tags"],
                     now,
-                    now
-                )
+                    now,
+                ),
             )
 
     def add_entry(
@@ -76,10 +80,13 @@ class VaultRepository:
         password: str,
         url: str,
         notes: str,
-        tags: str
+        tags: str,
     ) -> None:
-        self.key_manager.unlock_with_password(self.db, master_password)
-        encrypted_password = self.crypto.encrypt(password.encode("utf-8"), self.key_manager)
+        active_key = self.key_manager.unlock_with_password(self.db, master_password)
+        encrypted_password = self.crypto.encrypt(
+            password.encode("utf-8"),
+            active_key,
+        )
         now = datetime.now().isoformat()
 
         self.db.execute(
@@ -96,8 +103,8 @@ class VaultRepository:
                 notes,
                 tags,
                 now,
-                now
-            )
+                now,
+            ),
         )
 
     def get_entries_for_table(self):
