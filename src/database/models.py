@@ -14,6 +14,7 @@ CREATE_TABLES_SQL = [
         updated_at TEXT NOT NULL
     );
     """,
+
     """
     CREATE TABLE IF NOT EXISTS audit_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,6 +25,7 @@ CREATE_TABLES_SQL = [
         signature BLOB
     );
     """,
+
     """
     CREATE TABLE IF NOT EXISTS settings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,15 +34,7 @@ CREATE_TABLES_SQL = [
         encrypted INTEGER NOT NULL CHECK (encrypted IN (0,1))
     );
     """,
-    """
-    CREATE TABLE IF NOT EXISTS key_store (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        key_type TEXT NOT NULL,
-        salt BLOB NOT NULL,
-        hash BLOB NOT NULL,
-        params TEXT
-    );
-    """
+
     """
     CREATE TABLE IF NOT EXISTS key_store (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
