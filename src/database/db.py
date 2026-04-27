@@ -16,7 +16,7 @@ class Database:
 
     def connect(self) -> None:
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
-        print("CONNECT DB:", self._db_path.resolve())
+        # отладочное соединение отключено
 
         self._connection = sqlite3.connect(
             self._db_path,
@@ -69,9 +69,7 @@ class Database:
         self._connection.execute(f"PRAGMA user_version = {version};")
 
     def execute(self, query, params=()):
-        print("EXECUTE DB:", self._db_path.resolve())
-        print("QUERY:", query.strip())
-        print("PARAMS:", params)
+        # debug sql disabled
 
         cursor = self._connection.execute(query, params)
         self._connection.commit()
