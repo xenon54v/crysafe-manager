@@ -96,14 +96,11 @@ class KeyManager:
         self._active_key = None
         self._active_salt = None
 
-    # -------- Storage hooks (Sprint 2 implementation point) --------
-
     def store_key(self) -> None:
-        raise NotImplementedError(
-            "store_key will be implemented as part of Sprint 2 key storage flow"
-        )
+        # в базе хранятся только salt и hash мастер-пароля.
+        if self._active_key is None:
+            raise RuntimeError("Нет активного ключа для хранения.")
 
-    def load_key(self) -> None:
-        raise NotImplementedError(
-            "load_key will be implemented as part of Sprint 2 key storage flow"
-        )
+    def load_key(self) -> bytes:
+        # ключ не загружается из файла, а заново выводится из мастер-пароля.
+        return self.get_active_key()
