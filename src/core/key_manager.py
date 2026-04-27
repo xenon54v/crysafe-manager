@@ -102,10 +102,10 @@ class KeyManager:
         self._storage.clear()
 
     def store_key(self) -> None:
-        # в базе хранятся только salt и hash мастер-пароля.
         if self._active_key is None:
-            raise RuntimeError("Нет активного ключа для хранения.")
+            raise RuntimeError("Нет активного ключа для сохранения в памяти.")
+
+        self._storage.save(self._active_key)
 
     def load_key(self) -> bytes:
-        # ключ не загружается из файла, а заново выводится из мастер-пароля.
-        return self.get_active_key()
+        return self._storage.load()
