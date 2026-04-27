@@ -8,6 +8,8 @@ from src.core.crypto.key_derivation import (
     KeyDerivationService,
 )
 
+from src.core.crypto.key_storage import KeyStorage
+
 @dataclass(frozen=True)
 class DerivedKey:
     key: bytes
@@ -16,6 +18,7 @@ class DerivedKey:
 class KeyManager:
     def __init__(self) -> None:
         self._kdf = KeyDerivationService()
+        self._storage = KeyStorage()
         self._active_key: Optional[bytes] = None
         self._active_salt: Optional[bytes] = None
 
@@ -75,6 +78,7 @@ class KeyManager:
 
         self._active_salt = salt
         self._active_key = self.derive_key(password, salt)
+        self._storage.save(self._active_key)
         return self._active_key
 
     def get_active_key(self) -> bytes:
@@ -95,6 +99,7 @@ class KeyManager:
     def clear_active_key(self) -> None:
         self._active_key = None
         self._active_salt = None
+        self._storage.clear()
 
     def store_key(self) -> None:
         # в базе хранятся только salt и hash мастер-пароля.
