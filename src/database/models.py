@@ -1,6 +1,5 @@
 ﻿SCHEMA_VERSION = 2
 
-
 CREATE_TABLES_SQL = [
     """
     CREATE TABLE IF NOT EXISTS vault_entries (
@@ -42,11 +41,20 @@ CREATE_TABLES_SQL = [
         params TEXT
     );
     """
+    """
+    CREATE TABLE IF NOT EXISTS key_store (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        key_type TEXT UNIQUE NOT NULL,
+        salt BLOB NOT NULL,
+        hash TEXT NOT NULL,
+        params TEXT
+    );
+    """
 ]
-
 
 CREATE_INDEXES_SQL = [
     "CREATE INDEX IF NOT EXISTS idx_vault_title ON vault_entries(title);",
     "CREATE INDEX IF NOT EXISTS idx_audit_entry_id ON audit_log(entry_id);",
-    "CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(setting_key);"
+    "CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(setting_key);",
+    "CREATE INDEX IF NOT EXISTS idx_key_store_type ON key_store(key_type);"
 ]
