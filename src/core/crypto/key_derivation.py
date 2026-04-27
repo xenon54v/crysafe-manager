@@ -74,9 +74,6 @@ def validate_password(password: str, policy: PasswordPolicy | None = None) -> Pa
     if policy.require_symbols and not re.search(r"[^A-Za-z0-9]", password):
         return PasswordValidationResult(False, "Добавьте хотя бы один специальный символ")
 
-    if password.lower() in COMMON_WEAK_PATTERNS:
-        return PasswordValidationResult(False, "Слишком простой пароль")
-
     lowered = password.lower()
 
     if lowered in COMMON_WEAK_PATTERNS:
@@ -88,14 +85,14 @@ def validate_password(password: str, policy: PasswordPolicy | None = None) -> Pa
     return PasswordValidationResult(True, "OK")
 
 
-# -------------------- Auth Hash --------------------
+# Auth Hash
 
 @dataclass(frozen=True)
 class AuthHashResult:
     hash: str
 
 
-# -------------------- Key Derivation --------------------
+# Key Derivation
 
 class KeyDerivationService:
 
