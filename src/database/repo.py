@@ -3,7 +3,6 @@ from datetime import datetime
 from src.core.crypto.placeholder import AES256Placeholder
 from src.core.key_manager import KeyManager
 
-
 class VaultRepository:
     def __init__(self, db):
         self.db = db
@@ -18,7 +17,7 @@ class VaultRepository:
         if self.count_entries() > 0:
             return
 
-        active_key = self.key_manager.unlock_with_password(self.db, master_password)
+        self.key_manager.unlock_with_password(self.db, master_password)
         now = datetime.now().isoformat()
 
         samples = [
@@ -51,7 +50,7 @@ class VaultRepository:
         for item in samples:
             encrypted_password = self.crypto.encrypt(
                 item["password"].encode("utf-8"),
-                active_key,
+                self.key_manager,
             )
 
             self.db.execute(
@@ -82,11 +81,13 @@ class VaultRepository:
         notes: str,
         tags: str,
     ) -> None:
-        active_key = self.key_manager.unlock_with_password(self.db, master_password)
+        self.key_manager.unlock_with_password(self.db, master_password)
+
         encrypted_password = self.crypto.encrypt(
             password.encode("utf-8"),
-            active_key,
+            self.key_manager,
         )
+
         now = datetime.now().isoformat()
 
         self.db.execute(
