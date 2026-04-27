@@ -47,7 +47,7 @@ class KeyManager:
     def unlock_with_password(self, db, password: str) -> bytes:
         row = db.execute(
             """
-            SELECT salt
+            SELECT salt, hash
             FROM key_store
             WHERE key_type = ?
             LIMIT 1;
@@ -68,6 +68,10 @@ class KeyManager:
             )
         else:
             salt = row[0]
+            stored_hash = row[1]
+
+            if not self.verify_password(password, stored_hash):
+                raise ValueError("Неверный мастер-пароль")
 
         self._active_salt = salt
         self._active_key = self.derive_key(password, salt)
