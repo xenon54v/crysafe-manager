@@ -8,12 +8,10 @@ from src.core.crypto.key_derivation import (
     KeyDerivationService,
 )
 
-
 @dataclass(frozen=True)
 class DerivedKey:
     key: bytes
     salt: bytes
-
 
 class KeyManager:
     def __init__(self) -> None:
@@ -47,13 +45,6 @@ class KeyManager:
     # -------- Active key flow for current app logic --------
 
     def unlock_with_password(self, db, password: str) -> bytes:
-        """
-        Временная рабочая логика для Sprint 1:
-        - ищем salt для master key в key_store
-        - если записи нет, создаём salt и сохраняем его
-        - производим ключ из master password и salt
-        - сохраняем ключ как активный в памяти
-        """
         row = db.execute(
             """
             SELECT salt
@@ -66,12 +57,14 @@ class KeyManager:
 
         if row is None:
             salt = self.generate_salt()
+            auth_hash = self.create_auth_hash(password).hash
+
             db.execute(
                 """
                 INSERT INTO key_store (key_type, salt, hash, params)
                 VALUES (?, ?, ?, ?);
                 """,
-                ("master", salt, "", None)
+                ("master", salt, auth_hash, "argon2+pbkdf2")
             )
         else:
             salt = row[0]

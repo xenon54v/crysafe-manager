@@ -13,20 +13,20 @@ from hashlib import pbkdf2_hmac
 # -------------------- Password Policy --------------------
 
 COMMON_WEAK_PATTERNS = {
-    "Password!",
-    "Password0!",
-    "Password1!",
-    "Password123!",
-    "Qwerty123456!",
+    "password!",
+    "password0!",
+    "password1!",
+    "password123!",
+    "qwerty123456!",
     "12345678!",
     "1234567890!",
     "0987654321!",
-    "Qwerty111!",
-    "Qwerty123!",
-    "Admin000!",
-    "Admin123!",
-    "Myadmin1!",
-    "Loginlogin!",
+    "qwerty111!",
+    "qwerty123!",
+    "admin000!",
+    "admin123!",
+    "myadmin1!",
+    "loginlogin!",
     ""
 }
 COMMON_WEAK_SUBSTRINGS = [
@@ -142,5 +142,8 @@ def get_password_rule_status(password: str, policy: PasswordPolicy | None = None
         "Есть заглавная буква": bool(re.search(r"[A-Z]", password)),
         "Есть цифра": bool(re.search(r"\d", password)),
         "Есть специальный символ": bool(re.search(r"[^A-Za-z0-9]", password)),
-        "Пароль не слишком простой": lowered not in COMMON_WEAK_PATTERNS,
+        "Пароль не слишком простой": (
+    lowered not in COMMON_WEAK_PATTERNS
+    and not any(part in lowered for part in COMMON_WEAK_SUBSTRINGS)
+),
     }
