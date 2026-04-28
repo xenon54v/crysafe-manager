@@ -84,22 +84,25 @@ def validate_password(password: str, policy: PasswordPolicy | None = None) -> Pa
 class AuthHashResult:
     hash: str
 
+@dataclass(frozen=True)
+class Argon2Settings:
+    time_cost: int = 3
+    memory_cost: int = 65536
+    parallelism: int = 4
+    hash_len: int = 32
+
 # Key Derivation
 
 class KeyDerivationService:
 
-    def __init__(
-            self,
-            time_cost: int = 3,
-            memory_cost: int = 65536, # 64 MiB в KiB
-            parallelism: int = 4,
-            hash_len: int = 32,
-    ) -> None:
+    def __init__(self, settings: Argon2Settings | None = None) -> None:
+        self.settings = settings or Argon2Settings()
+
         self._hasher = PasswordHasher(
-            time_cost=time_cost,
-            memory_cost=memory_cost,
-            parallelism=parallelism,
-            hash_len=hash_len,
+            time_cost=self.settings.time_cost,
+            memory_cost=self.settings.memory_cost,
+            parallelism=self.settings.parallelism,
+            hash_len=self.settings.hash_len,
             type=Type.ID,
         )
 
