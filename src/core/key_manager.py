@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from src.core.crypto.key_derivation import (
+    Argon2Settings,
     AuthHashResult,
     KeyDerivationService,
 )
@@ -16,8 +17,8 @@ class DerivedKey:
     salt: bytes
 
 class KeyManager:
-    def __init__(self) -> None:
-        self._kdf = KeyDerivationService()
+    def __init__(self, argon2_settings: Argon2Settings | None = None) -> None:
+        self._kdf = KeyDerivationService(argon2_settings)
         self._storage = KeyStorage()
         self._active_key: Optional[bytes] = None
         self._active_salt: Optional[bytes] = None
