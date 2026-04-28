@@ -133,9 +133,9 @@ class KeyManager:
         return self._active_salt
 
     def clear_active_key(self) -> None:
+        self._storage.clear()
         self._active_key = None
         self._active_salt = None
-        self._storage.clear()
 
     def store_key(self) -> None:
         if self._active_key is None:
