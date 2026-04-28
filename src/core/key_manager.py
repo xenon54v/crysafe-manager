@@ -120,9 +120,7 @@ class KeyManager:
         return self._active_key
 
     def get_active_key(self) -> bytes:
-        if self._active_key is None:
-            raise RuntimeError("Encryption key is not unlocked.")
-        return self._active_key
+        return self._storage.load()
 
     @property
     def active_key(self) -> bytes:
