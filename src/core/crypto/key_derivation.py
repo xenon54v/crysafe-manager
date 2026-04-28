@@ -114,7 +114,8 @@ class KeyDerivationService:
 
     def verify_password(self, password: str, stored_hash: str) -> bool:
         try:
-            return self._hasher.verify(stored_hash, password)
+            result = self._hasher.verify(stored_hash, password)
+            return result
         except VerifyMismatchError:
             return False
 
