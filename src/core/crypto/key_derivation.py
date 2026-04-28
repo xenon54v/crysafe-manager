@@ -91,18 +91,29 @@ class Argon2Settings:
     parallelism: int = 4
     hash_len: int = 32
 
+@dataclass(frozen=True)
+class PBKDF2Settings:
+    iterations: int = 200_000
+    salt_len: int = 16
+    key_len: int = 32
+
 # Key Derivation
 
 class KeyDerivationService:
 
-    def __init__(self, settings: Argon2Settings | None = None) -> None:
-        self.settings = settings or Argon2Settings()
+    def __init__(
+            self,
+            argon2_settings: Argon2Settings | None = None,
+            pbkdf2_settings: PBKDF2Settings | None = None,
+    ) -> None:
+        self.argon2_settings = argon2_settings or Argon2Settings()
+        self.pbkdf2_settings = pbkdf2_settings or PBKDF2Settings()
 
         self._hasher = PasswordHasher(
-            time_cost=self.settings.time_cost,
-            memory_cost=self.settings.memory_cost,
-            parallelism=self.settings.parallelism,
-            hash_len=self.settings.hash_len,
+            time_cost=self.argon2_settings.time_cost,
+            memory_cost=self.argon2_settings.memory_cost,
+            parallelism=self.argon2_settings.parallelism,
+            hash_len=self.argon2_settings.hash_len,
             type=Type.ID,
         )
 
@@ -121,7 +132,8 @@ class KeyDerivationService:
 
     # PBKDF2 (encryption key)
 
-    def generate_salt(self, length: int = 16) -> bytes:
+    def generate_salt(self, length: int | None = None) -> bytes:
+        length = length or self.pbkdf2_settings.salt_len
         return os.urandom(length)
 
     def derive_encryption_key(self, password: str, salt: bytes) -> bytes:
@@ -129,8 +141,8 @@ class KeyDerivationService:
             "sha256",
             password.encode("utf-8"),
             salt,
-            200_000,
-            dklen=32,
+            self.pbkdf2_settings.iterations,
+            dklen=self.pbkdf2_settings.key_len,
         )
 
 # UI Helper
