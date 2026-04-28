@@ -7,6 +7,7 @@ from src.core.crypto.key_derivation import (
     Argon2Settings,
     AuthHashResult,
     KeyDerivationService,
+    PBKDF2Settings,
 )
 
 from src.core.crypto.key_storage import KeyStorage
@@ -17,8 +18,12 @@ class DerivedKey:
     salt: bytes
 
 class KeyManager:
-    def __init__(self, argon2_settings: Argon2Settings | None = None) -> None:
-        self._kdf = KeyDerivationService(argon2_settings)
+    def __init__(
+            self,
+            argon2_settings: Argon2Settings | None = None,
+            pbkdf2_settings: PBKDF2Settings | None = None,
+    ) -> None:
+        self._kdf = KeyDerivationService(argon2_settings, pbkdf2_settings)
         self._storage = KeyStorage()
         self._active_key: Optional[bytes] = None
         self._active_salt: Optional[bytes] = None
