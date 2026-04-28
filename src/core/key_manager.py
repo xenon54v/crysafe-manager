@@ -1,4 +1,5 @@
-﻿from __future__ import annotations
+﻿import json
+from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Optional
@@ -27,6 +28,27 @@ class KeyManager:
         self._storage = KeyStorage()
         self._active_key: Optional[bytes] = None
         self._active_salt: Optional[bytes] = None
+
+    def _build_key_params(self) -> str:
+        return json.dumps(
+            {
+                "version": 1,
+                "auth": {
+                    "algorithm": "argon2id",
+                    "time_cost": self._kdf.argon2_settings.time_cost,
+                    "memory_cost": self._kdf.argon2_settings.memory_cost,
+                    "parallelism": self._kdf.argon2_settings.parallelism,
+                    "hash_len": self._kdf.argon2_settings.hash_len,
+                },
+                "encryption": {
+                    "algorithm": "pbkdf2_hmac_sha256",
+                    "iterations": self._kdf.pbkdf2_settings.iterations,
+                    "salt_len": self._kdf.pbkdf2_settings.salt_len,
+                    "key_len": self._kdf.pbkdf2_settings.key_len,
+                },
+            },
+            ensure_ascii=False,
+        )
 
     # -------- Password hashing / verification --------
 
@@ -73,7 +95,7 @@ class KeyManager:
                 INSERT INTO key_store (key_type, salt, hash, params)
                 VALUES (?, ?, ?, ?);
                 """,
-                ("master", salt, auth_hash, "argon2+pbkdf2")
+                ("master", salt, auth_hash, self._build_key_params())
             )
         else:
             salt = row[0]
