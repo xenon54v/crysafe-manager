@@ -50,7 +50,7 @@ class KeyManager:
             ensure_ascii=False,
         )
 
-    # -------- Password hashing / verification --------
+    # Password hashing / verification
 
     def create_auth_hash(self, password: str) -> AuthHashResult:
         return self._kdf.create_auth_hash(password)
@@ -58,7 +58,7 @@ class KeyManager:
     def verify_password(self, password: str, stored_hash: str) -> bool:
         return self._kdf.verify_password(password, stored_hash)
 
-    # -------- Encryption key derivation --------
+    # Encryption key derivation
 
     def generate_salt(self, length: int | None = None) -> bytes:
         if length is None:
@@ -73,7 +73,7 @@ class KeyManager:
         key = self.derive_key(password, salt)
         return DerivedKey(key=key, salt=salt)
 
-    # -------- Active key flow for current app logic --------
+    # Active key flow for current app logic
 
     def unlock_with_password(self, db, password: str) -> bytes:
         row = db.execute(
