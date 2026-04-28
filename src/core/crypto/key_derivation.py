@@ -3,14 +3,11 @@ from __future__ import annotations
 import os
 import re
 from dataclasses import dataclass
-
-from argon2 import PasswordHasher
+from argon2 import PasswordHasher, Type
 from argon2.exceptions import VerifyMismatchError
-
 from hashlib import pbkdf2_hmac
 
-
-# -------------------- Password Policy --------------------
+# Password Policy
 
 COMMON_WEAK_PATTERNS = {
     "password!",
@@ -37,7 +34,6 @@ COMMON_WEAK_SUBSTRINGS = [
     "login",
 ]
 
-
 @dataclass(frozen=True)
 class PasswordPolicy:
     min_length: int = 12
@@ -46,12 +42,10 @@ class PasswordPolicy:
     require_digits: bool = True
     require_symbols: bool = True
 
-
 @dataclass(frozen=True)
 class PasswordValidationResult:
     ok: bool
     message: str
-
 
 def validate_password(password: str, policy: PasswordPolicy | None = None) -> PasswordValidationResult:
     policy = policy or PasswordPolicy()
@@ -84,22 +78,32 @@ def validate_password(password: str, policy: PasswordPolicy | None = None) -> Pa
 
     return PasswordValidationResult(True, "OK")
 
-
 # Auth Hash
 
 @dataclass(frozen=True)
 class AuthHashResult:
     hash: str
 
-
 # Key Derivation
 
 class KeyDerivationService:
 
-    def __init__(self) -> None:
-        self._hasher = PasswordHasher()
+    def __init__(
+            self,
+            time_cost: int = 3,
+            memory_cost: int = 65536, # 64 MiB в KiB
+            parallelism: int = 4,
+            hash_len: int = 32,
+    ) -> None:
+        self._hasher = PasswordHasher(
+            time_cost=time_cost,
+            memory_cost=memory_cost,
+            parallelism=parallelism,
+            hash_len=hash_len,
+            type=Type.ID,
+        )
 
-    # -------- Argon2 (auth) --------
+    # Argon2 (auth)
 
     def create_auth_hash(self, password: str) -> AuthHashResult:
         hash_value = self._hasher.hash(password)
@@ -111,7 +115,7 @@ class KeyDerivationService:
         except VerifyMismatchError:
             return False
 
-    # -------- PBKDF2 (encryption key) --------
+    # PBKDF2 (encryption key)
 
     def generate_salt(self, length: int = 16) -> bytes:
         return os.urandom(length)
@@ -125,8 +129,7 @@ class KeyDerivationService:
             dklen=32,
         )
 
-
-# -------------------- UI Helper --------------------
+# UI Helper
 
 def get_password_rule_status(password: str, policy: PasswordPolicy | None = None) -> dict[str, bool]:
     policy = policy or PasswordPolicy()
