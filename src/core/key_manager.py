@@ -23,9 +23,10 @@ class KeyManager:
             self,
             argon2_settings: Argon2Settings | None = None,
             pbkdf2_settings: PBKDF2Settings | None = None,
+            key_cache_ttl_seconds: int = 3600,
     ) -> None:
         self._kdf = KeyDerivationService(argon2_settings, pbkdf2_settings)
-        self._storage = KeyStorage()
+        self._storage = KeyStorage(ttl_seconds=key_cache_ttl_seconds)
         self._active_key: Optional[bytes] = None
         self._active_salt: Optional[bytes] = None
 
