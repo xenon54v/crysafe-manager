@@ -3,7 +3,7 @@
 from src.gui.widgets.secure_table import SecureTable
 from src.gui.widgets.audit_log_viewer import AuditLogViewer
 from src.gui.setup_wizard import SetupWizard
-from src.core.config import ConfigManager
+# from src.core.config import ConfigManager
 from src.database.db import Database
 from src.database.repo import VaultRepository
 from src.gui.add_entry_dialog import AddEntryDialog
@@ -25,7 +25,7 @@ class MainWindow(ctk.CTk):
         self.repo = None
         self.master_password = None
 
-        self.title("CryptoSafe Manager - Sprint 1")
+        self.title("CryptoSafe Manager")
         self.geometry("1100x700")
 
         self.grid_rowconfigure(1, weight=1)

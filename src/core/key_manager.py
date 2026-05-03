@@ -103,8 +103,16 @@ class KeyManager:
             params = row[2]
 
             if not params:
-                raise ValueError("Параметры ключа отсутствуют в key_store")
+                params = self._build_key_params()
 
+                db.execute(
+                    """
+                    UPDATE key_store
+                    SET params = ?
+                    WHERE key_type = ?;
+                    """,
+                    (params, "master")
+                )
             try:
                 parsed = json.loads(params)
             except Exception:
