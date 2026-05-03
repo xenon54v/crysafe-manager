@@ -1,9 +1,7 @@
 ﻿import customtkinter as ctk
 
-
 PINK = "#d98ca3"
 PINK_HOVER = "#c97c93"
-
 
 class AuditLogViewer(ctk.CTkToplevel):
     def __init__(self, master=None):
@@ -11,6 +9,16 @@ class AuditLogViewer(ctk.CTkToplevel):
 
         self.title("Audit Log")
         self.geometry("700x450")
+
+        self.transient(master)
+
+        if master is not None:
+            self.grab_set()
+
+        self.lift()
+        self.focus_force()
+        self.attributes("-topmost", True)
+        self.after(200, lambda: self.attributes("-topmost", False))
 
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
