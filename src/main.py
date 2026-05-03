@@ -1,5 +1,4 @@
 from pathlib import Path
-import tkinter as tk
 
 from src.database.db import Database
 from src.gui.main_window import MainWindow
@@ -11,9 +10,8 @@ def main() -> None:
     db = Database(db_path)
     db.connect()
 
-    root = tk.Tk()
-    app = MainWindow(root, db)
-    root.mainloop()
+    app = MainWindow()
+    app.mainloop()
 
     db.close()
 
