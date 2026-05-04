@@ -9,7 +9,7 @@ from src.core.crypto.key_derivation import (
     KeyDerivationService,
     PBKDF2Settings,
 )
-
+from src.core.os_keychain import OSKeychain
 from src.core.crypto.key_storage import KeyStorage
 
 @dataclass(frozen=True)
@@ -26,6 +26,7 @@ class KeyManager:
     ) -> None:
         self._kdf = KeyDerivationService(argon2_settings, pbkdf2_settings)
         self._storage = KeyStorage(ttl_seconds=key_cache_ttl_seconds)
+        self._os_keychain = OSKeychain()
         self._active_key: Optional[bytes] = None
         self._active_salt: Optional[bytes] = None
 
@@ -152,6 +153,18 @@ class KeyManager:
 
     def load_key(self) -> bytes:
         return self._storage.load()
+
+    def save_keychain_secret(self, name: str, value: str) -> bool:
+        return self._os_keychain.save_secret(name, value)
+
+    def load_keychain_secret(self, name: str) -> str | None:
+        return self._os_keychain.load_secret(name)
+
+    def delete_keychain_secret(self, name: str) -> bool:
+        return self._os_keychain.delete_secret(name)
+
+    def is_keychain_available(self) -> bool:
+        return self._os_keychain.is_available()
 
     def lock(self) -> None:
         self.clear_active_key()
