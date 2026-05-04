@@ -152,3 +152,6 @@ class KeyManager:
 
     def load_key(self) -> bytes:
         return self._storage.load()
+
+    def lock(self) -> None:
+        self.clear_active_key()
