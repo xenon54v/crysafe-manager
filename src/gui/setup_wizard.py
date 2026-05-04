@@ -18,6 +18,9 @@ class SetupResult:
     db_path: Path
     enc_scheme: str
 
+@dataclass(frozen=True)
+class LoginResult:
+    master_password: str
 
 class SetupWizard(ctk.CTkToplevel):
     def __init__(self, master=None):
@@ -269,4 +272,82 @@ class SetupWizard(ctk.CTkToplevel):
             db_path=Path(self.db_var.get().strip()),
             enc_scheme=self.enc_var.get()
         )
+        self.destroy()
+
+class LoginDialog(ctk.CTkToplevel):
+    def __init__(self, master=None):
+        super().__init__(master)
+
+        self.title("Login")
+        self.geometry("420x260")
+        self.resizable(False, False)
+
+        self._result = None
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        frame = ctk.CTkFrame(self)
+        frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+
+        ctk.CTkLabel(
+            frame,
+            text="Вход в CryptoSafe Manager",
+            font=ctk.CTkFont(size=20, weight="bold")
+        ).pack(anchor="w", pady=(10, 18))
+
+        ctk.CTkLabel(frame, text="Введите мастер-пароль").pack(anchor="w", pady=(0, 5))
+
+        self.password_entry = PasswordEntry(frame)
+        self.password_entry.pack(fill="x", pady=(0, 18))
+
+        buttons = ctk.CTkFrame(frame, fg_color="transparent")
+        buttons.pack(fill="x", pady=(10, 0))
+
+        self.cancel_button = ctk.CTkButton(
+            buttons,
+            text="Cancel",
+            width=100,
+            command=self._cancel,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white"
+        )
+        self.cancel_button.pack(side="right", padx=(10, 0))
+
+        self.login_button = ctk.CTkButton(
+            buttons,
+            text="Login",
+            width=100,
+            command=self._login,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white"
+        )
+        self.login_button.pack(side="right")
+
+        self.password_entry.entry.bind("<Return>", lambda event: self._login())
+
+        self.transient(master)
+        self.grab_set()
+        self.protocol("WM_DELETE_WINDOW", self._cancel)
+
+        self.password_entry.focus()
+
+    @property
+    def result(self):
+        return self._result
+
+    def _login(self):
+        password = self.password_entry.get()
+
+        if not password:
+            messagebox.showerror("Ошибка", "Введите мастер-пароль.")
+            return
+
+        self._result = LoginResult(master_password=password)
+        self.destroy()
+
+    def _cancel(self):
+        self._result = None
         self.destroy()

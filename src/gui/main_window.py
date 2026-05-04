@@ -1,8 +1,11 @@
 ﻿import customtkinter as ctk
 
+from tkinter import messagebox
+from src.core.config import ConfigManager
+
 from src.gui.widgets.secure_table import SecureTable
 from src.gui.widgets.audit_log_viewer import AuditLogViewer
-from src.gui.setup_wizard import SetupWizard
+from src.gui.setup_wizard import SetupWizard, LoginDialog
 from src.core.state_manager import StateManager
 from src.database.db import Database
 from src.database.repo import VaultRepository
@@ -33,7 +36,7 @@ class MainWindow(ctk.CTk):
         self._create_table()
         self._create_status_bar()
 
-        self.after(100, self._show_setup_wizard)
+        self.after(100, self._start_auth_flow)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _create_header(self):
@@ -139,6 +142,14 @@ class MainWindow(ctk.CTk):
         )
         self.status.pack(fill="x", padx=14, pady=8)
 
+    def _start_auth_flow(self):
+        default_db_path = ConfigManager().load().db_path
+
+        if default_db_path.exists():
+            self._show_login_dialog(default_db_path)
+        else:
+            self._show_setup_wizard()
+
     def _show_setup_wizard(self):
         wiz = SetupWizard(self)
         self.wait_window(wiz)
@@ -163,7 +174,47 @@ class MainWindow(ctk.CTk):
         self.state_manager.login("local_user")
         self.state_manager.start_inactivity_timer(300)
 
-        self.status.configure(text=f"Status: Locked | DB: {r.db_path} | ENC: {r.enc_scheme}")
+        self.status.configure(
+            text=f"Status: Unlocked | DB: {r.db_path} | ENC: {r.enc_scheme}"
+        )
+
+    def _show_login_dialog(self, db_path):
+        login = LoginDialog(self)
+        self.wait_window(login)
+
+        if login.result is None:
+            self.destroy()
+            return
+
+        self.db = Database(db_path)
+        self.db.connect()
+
+        self.repo = VaultRepository(self.db)
+
+        try:
+            self.repo.key_manager.unlock_with_password(
+                self.db,
+                login.result.master_password
+            )
+        except ValueError:
+            messagebox.showerror("Ошибка входа", "Неверный мастер-пароль.")
+            self.db.close()
+            self.db = None
+            self.repo = None
+            self._show_login_dialog(db_path)
+            return
+
+        self.master_password = login.result.master_password
+
+        rows = self.repo.get_entries_for_table()
+        self.table.set_rows(rows)
+
+        self.state_manager.login("local_user")
+        self.state_manager.start_inactivity_timer(300)
+
+        self.status.configure(
+            text=f"Status: Unlocked | DB: {db_path}"
+        )
 
     def _open_logs(self):
         AuditLogViewer(self)
