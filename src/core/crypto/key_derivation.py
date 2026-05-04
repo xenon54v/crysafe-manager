@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 import os
 import re
 from dataclasses import dataclass
@@ -126,7 +127,7 @@ class KeyDerivationService:
     def verify_password(self, password: str, stored_hash: str) -> bool:
         try:
             result = self._hasher.verify(stored_hash, password)
-            return result
+            return secrets.compare_digest(str(result), "True")
         except VerifyMismatchError:
             return False
 

@@ -3,7 +3,6 @@ from pathlib import Path
 from src.database.db import Database
 from src.gui.main_window import MainWindow
 
-
 def main() -> None:
     db_path = Path("data/cryptosafe_dev.db")
 
@@ -14,7 +13,6 @@ def main() -> None:
     app.mainloop()
 
     db.close()
-
 
 if __name__ == "__main__":
     main()
