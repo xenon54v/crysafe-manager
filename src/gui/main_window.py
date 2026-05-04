@@ -3,19 +3,16 @@
 from src.gui.widgets.secure_table import SecureTable
 from src.gui.widgets.audit_log_viewer import AuditLogViewer
 from src.gui.setup_wizard import SetupWizard
-# from src.core.config import ConfigManager
+from src.core.state_manager import StateManager
 from src.database.db import Database
 from src.database.repo import VaultRepository
 from src.gui.add_entry_dialog import AddEntryDialog
 
-
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
-
 PINK = "#d98ca3"
 PINK_HOVER = "#c97c93"
-
 
 class MainWindow(ctk.CTk):
     def __init__(self):
@@ -24,6 +21,7 @@ class MainWindow(ctk.CTk):
         self.db = None
         self.repo = None
         self.master_password = None
+        self.state_manager = StateManager(on_auto_lock=self._handle_auto_lock)
 
         self.title("CryptoSafe Manager")
         self.geometry("1100x700")
@@ -69,7 +67,19 @@ class MainWindow(ctk.CTk):
             hover_color=PINK_HOVER,
             text_color="white"
         )
-        self.settings_button.grid(row=0, column=3, padx=(0, 20), pady=15)
+
+        self.logout_button = ctk.CTkButton(
+            self.header,
+            text="Logout",
+            width=100,
+            command=self._logout,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white"
+        )
+        self.logout_button.grid(row=0, column=4, padx=(0, 20), pady=15)
+
+        self.settings_button.grid(row=0, column=3, padx=10, pady=15)
 
     def _create_table(self):
         self.table_frame = ctk.CTkFrame(self, corner_radius=18)
@@ -116,6 +126,7 @@ class MainWindow(ctk.CTk):
             command=self._delete_entry
         )
         self.delete_button.pack(side="left")
+
     def _create_status_bar(self):
         self.status_frame = ctk.CTkFrame(self, corner_radius=14)
         self.status_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 15))
@@ -149,14 +160,21 @@ class MainWindow(ctk.CTk):
         rows = self.repo.get_entries_for_table()
         self.table.set_rows(rows)
 
+        self.state_manager.login("local_user")
+        self.state_manager.start_inactivity_timer(300)
+
         self.status.configure(text=f"Status: Locked | DB: {r.db_path} | ENC: {r.enc_scheme}")
 
     def _open_logs(self):
         AuditLogViewer(self)
 
     def _on_close(self):
+        self._clear_sensitive_data()
+        self.state_manager.stop_timers()
+
         if self.db is not None:
             self.db.close()
+
         self.destroy()
 
     def _add_entry(self):
@@ -180,6 +198,21 @@ class MainWindow(ctk.CTk):
 
         rows = self.repo.get_entries_for_table()
         self.table.set_rows(rows)
+
+    def _clear_sensitive_data(self):
+        self.master_password = None
+
+        if self.repo is not None:
+            self.repo.key_manager.lock()
+
+    def _handle_auto_lock(self):
+        self.after(0, self._logout)
+
+    def _logout(self):
+        self._clear_sensitive_data()
+        self.state_manager.logout()
+        self.table.set_rows([])
+        self.status.configure(text="Status: Locked | Logged out")
 
     def _edit_entry(self):
         print("Edit entry clicked")
