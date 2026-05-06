@@ -10,6 +10,8 @@ from src.core.state_manager import StateManager
 from src.database.db import Database
 from src.database.repo import VaultRepository
 from src.gui.add_entry_dialog import AddEntryDialog
+from src.core.crypto.authentication import AuthenticationService
+from src.core.events import EventBus, UserLoggedIn, UserLoggedOut, now_utc
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -25,6 +27,9 @@ class MainWindow(ctk.CTk):
         self.repo = None
         self.master_password = None
         self.state_manager = StateManager(on_auto_lock=self._handle_auto_lock)
+
+        self.auth_service = AuthenticationService()
+        self.event_bus = EventBus()
 
         self.title("CryptoSafe Manager")
         self.geometry("1100x700")
@@ -172,7 +177,9 @@ class MainWindow(ctk.CTk):
         self.table.set_rows(rows)
 
         self.state_manager.login("local_user")
+
         self.state_manager.start_inactivity_timer(300)
+        self.auth_service.login("local_user")
 
         self.status.configure(
             text=f"Status: Unlocked | DB: {r.db_path} | ENC: {r.enc_scheme}"
@@ -196,13 +203,45 @@ class MainWindow(ctk.CTk):
                 self.db,
                 login.result.master_password
             )
+
         except ValueError:
-            messagebox.showerror("Ошибка входа", "Неверный мастер-пароль.")
+            attempts = self.auth_service.register_failed_attempt()
+            delay = self.auth_service.get_backoff_delay()
+
+            messagebox.showerror(
+                "Ошибка входа",
+                f"Неверный мастер-пароль.\n"
+                f"Попытка: {attempts}\n"
+                f"Следующая попытка будет доступна через {delay} сек."
+            )
+
+            self.auth_service.apply_backoff_delay()
+
             self.db.close()
             self.db = None
             self.repo = None
+
             self._show_login_dialog(db_path)
+
+            self.event_bus.publish(
+                UserLoggedIn(
+                    name="UserLoggedIn",
+                    timestamp=now_utc(),
+                    user="local_user"
+                )
+            )
+
             return
+
+        self.auth_service.login("local_user")
+
+        self.event_bus.publish(
+            UserLoggedIn(
+                name="UserLoggedIn",
+                timestamp=now_utc(),
+                user="local_user"
+            )
+        )
 
         self.master_password = login.result.master_password
 
@@ -260,10 +299,31 @@ class MainWindow(ctk.CTk):
         self.after(0, self._logout)
 
     def _logout(self):
+        self.event_bus.publish(
+            UserLoggedOut(
+                name="UserLoggedOut",
+                timestamp=now_utc(),
+                user="local_user"
+            )
+        )
+
+        db_path = None
+        if self.db is not None:
+            db_path = self.db.path
+
         self._clear_sensitive_data()
+        self.auth_service.logout()
         self.state_manager.logout()
         self.table.set_rows([])
         self.status.configure(text="Status: Locked | Logged out")
+
+        if self.db is not None:
+            self.db.close()
+            self.db = None
+            self.repo = None
+
+        if db_path is not None:
+            self.after(100, lambda: self._show_login_dialog(db_path))
 
     def _edit_entry(self):
         print("Edit entry clicked")

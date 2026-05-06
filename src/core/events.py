@@ -7,62 +7,51 @@ from collections import defaultdict
 import asyncio
 import inspect
 
-
-# ---------------- Base Event ----------------
+# Base Event
 
 @dataclass(frozen=True)
 class Event:
     name: str
     timestamp: datetime
 
-
 def now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
-
-# ---------------- Concrete Events ----------------
+# Concrete Events
 
 @dataclass(frozen=True)
 class EntryAdded(Event):
     entry_id: int
     title: str
 
-
 @dataclass(frozen=True)
 class EntryUpdated(Event):
     entry_id: int
     title: str
 
-
 @dataclass(frozen=True)
 class EntryDeleted(Event):
     entry_id: int
-
 
 @dataclass(frozen=True)
 class UserLoggedIn(Event):
     user: str
 
-
 @dataclass(frozen=True)
 class UserLoggedOut(Event):
     user: str
-
 
 @dataclass(frozen=True)
 class ClipboardCopied(Event):
     entry_id: int
 
-
 @dataclass(frozen=True)
 class ClipboardCleared(Event):
     reason: str = "timer"
 
-
 Handler = Callable[[Event], Any]
 
-
-# ---------------- Event Bus ----------------
+# Event Bus
 
 class EventBus:
     def __init__(self) -> None:

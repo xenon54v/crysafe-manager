@@ -14,6 +14,10 @@ class Database:
         self._lock = threading.Lock()
         self._connection: Optional[sqlite3.Connection] = None
 
+    @property
+    def path(self) -> Path:
+        return self._db_path
+
     def connect(self) -> None:
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         # отладочное соединение отключено
