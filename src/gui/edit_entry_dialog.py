@@ -1,5 +1,8 @@
 import customtkinter as ctk
 
+PINK = "#d98ca3"
+PINK_HOVER = "#c97c93"
+
 class EditEntryDialog(ctk.CTkToplevel):
     def __init__(self, master=None, entry=None):
         super().__init__(master)
@@ -50,14 +53,20 @@ class EditEntryDialog(ctk.CTkToplevel):
         self.save_button = ctk.CTkButton(
             self,
             text="Save changes",
-            command=self._save
+            command=self._save,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white"
         )
         self.save_button.pack(fill="x", padx=30, pady=(20, 8))
 
         self.cancel_button = ctk.CTkButton(
             self,
             text="Cancel",
-            command=self.destroy
+            command=self.destroy,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white"
         )
         self.cancel_button.pack(fill="x", padx=30, pady=8)
 
