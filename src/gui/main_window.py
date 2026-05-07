@@ -313,6 +313,12 @@ class MainWindow(ctk.CTk):
         self.after(0, self._logout)
 
     def _logout(self):
+        if self.audit_repo is not None:
+            self.audit_repo.add_log(
+                action="logout",
+                details="User logged out"
+            )
+            
         self.event_bus.publish(
             UserLoggedOut(
                 name="UserLoggedOut",
