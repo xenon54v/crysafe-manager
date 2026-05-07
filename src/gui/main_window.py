@@ -218,6 +218,12 @@ class MainWindow(ctk.CTk):
             attempts = self.auth_service.register_failed_attempt()
             delay = self.auth_service.get_backoff_delay()
 
+            if self.audit_repo is not None:
+                self.audit_repo.add_log(
+                    action="failed_login",
+                    details=f"Failed login attempt #{attempts}"
+                )
+
             messagebox.showerror(
                 "Ошибка входа",
                 f"Неверный мастер-пароль.\n"
