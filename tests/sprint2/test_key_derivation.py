@@ -92,3 +92,63 @@ def test_generated_salt_has_expected_length():
 
     assert isinstance(salt, bytes)
     assert len(salt) == service.pbkdf2_settings.salt_len
+
+def test_named_keys_are_different_for_different_purposes():
+    service = KeyDerivationService()
+
+    salt = service.generate_salt()
+
+    from src.core.key_manager import KeyManager
+
+    manager = KeyManager()
+
+    vault_key = manager.derive_named_key(
+        "StrongPass123!",
+        salt,
+        "vault"
+    )
+
+    audit_key = manager.derive_named_key(
+        "StrongPass123!",
+        salt,
+        "audit"
+    )
+
+    assert vault_key != audit_key
+
+def test_named_keys_same_purpose_same_input_same_output():
+    from src.core.key_manager import KeyManager
+
+    manager = KeyManager()
+
+    salt = manager.generate_salt()
+
+    key1 = manager.derive_named_key(
+        "StrongPass123!",
+        salt,
+        "vault"
+    )
+
+    key2 = manager.derive_named_key(
+        "StrongPass123!",
+        salt,
+        "vault"
+    )
+
+    assert key1 == key2
+
+def test_named_key_requires_purpose():
+    from src.core.key_manager import KeyManager
+
+    manager = KeyManager()
+
+    salt = manager.generate_salt()
+
+    import pytest
+
+    with pytest.raises(ValueError):
+        manager.derive_named_key(
+            "StrongPass123!",
+            salt,
+            ""
+        )

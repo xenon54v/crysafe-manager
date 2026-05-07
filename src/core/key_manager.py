@@ -69,6 +69,18 @@ class KeyManager:
     def derive_key(self, password: str, salt: bytes) -> bytes:
         return self._kdf.derive_encryption_key(password, salt)
 
+    def derive_named_key(
+        self,
+        password: str,
+        salt: bytes,
+        purpose: str,
+    ) -> bytes:
+        if not purpose:
+            raise ValueError("Key purpose must not be empty.")
+
+        purpose_password = f"{purpose}:{password}"
+        return self.derive_key(purpose_password, salt)
+
     def derive_key_bundle(self, password: str) -> DerivedKey:
         salt = self.generate_salt()
         key = self.derive_key(password, salt)
