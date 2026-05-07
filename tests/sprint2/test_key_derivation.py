@@ -50,3 +50,45 @@ def test_password_rule_status():
     assert status["Есть заглавная буква"] is True
     assert status["Есть цифра"] is True
     assert status["Есть специальный символ"] is True
+
+def test_pbkdf2_same_password_and_salt_gives_same_key():
+    service = KeyDerivationService()
+
+    salt = service.generate_salt()
+
+    key1 = service.derive_encryption_key("StrongPass123!", salt)
+    key2 = service.derive_encryption_key("StrongPass123!", salt)
+
+    assert key1 == key2
+
+def test_pbkdf2_same_password_different_salt_gives_different_keys():
+    service = KeyDerivationService()
+
+    salt1 = service.generate_salt()
+    salt2 = service.generate_salt()
+
+    key1 = service.derive_encryption_key("StrongPass123!", salt1)
+    key2 = service.derive_encryption_key("StrongPass123!", salt2)
+
+    assert key1 != key2
+
+def test_auth_hashes_for_same_password_are_different():
+    service = KeyDerivationService()
+
+    hash1 = service.create_auth_hash("StrongPass123!").hash
+    hash2 = service.create_auth_hash("StrongPass123!").hash
+
+    assert hash1 != hash2
+
+def test_damaged_auth_hash_returns_false():
+    service = KeyDerivationService()
+
+    assert service.verify_password("StrongPass123!", "not-a-valid-hash") is False
+
+def test_generated_salt_has_expected_length():
+    service = KeyDerivationService()
+
+    salt = service.generate_salt()
+
+    assert isinstance(salt, bytes)
+    assert len(salt) == service.pbkdf2_settings.salt_len

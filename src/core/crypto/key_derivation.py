@@ -5,7 +5,7 @@ import os
 import re
 from dataclasses import dataclass
 from argon2 import PasswordHasher, Type
-from argon2.exceptions import VerifyMismatchError
+from argon2.exceptions import VerifyMismatchError, VerificationError, InvalidHashError
 from hashlib import pbkdf2_hmac
 
 # Password Policy
@@ -127,8 +127,8 @@ class KeyDerivationService:
     def verify_password(self, password: str, stored_hash: str) -> bool:
         try:
             result = self._hasher.verify(stored_hash, password)
-            return secrets.compare_digest(str(result), "True")
-        except VerifyMismatchError:
+            return bool(result)
+        except (VerifyMismatchError, VerificationError, InvalidHashError):
             return False
 
     # PBKDF2 (encryption key)
