@@ -366,7 +366,44 @@ class MainWindow(ctk.CTk):
         print("Edit entry clicked")
 
     def _delete_entry(self):
-        print("Delete entry clicked")
+        entry_id = self.table.get_selected_entry_id()
+
+        if entry_id is None:
+            messagebox.showwarning(
+                "Удаление записи",
+                "Сначала выберите запись в таблице."
+            )
+            return
+
+        confirm = messagebox.askyesno(
+            "Удаление записи",
+            f"Удалить запись с ID {entry_id}?"
+        )
+
+        if not confirm:
+            return
+
+        deleted = self.repo.delete_entry(entry_id)
+
+        if not deleted:
+            messagebox.showerror(
+                "Ошибка удаления",
+                "Запись не найдена или уже была удалена."
+            )
+            return
+
+        rows = self.repo.get_entries_for_table()
+        self.table.set_rows(rows)
+
+        self.audit_repo.add_log(
+            action="delete_entry",
+            details=f"Deleted entry id={entry_id}"
+        )
+
+        messagebox.showinfo(
+            "Удаление записи",
+            "Запись успешно удалена."
+        )
 
 
 def run():

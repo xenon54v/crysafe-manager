@@ -65,3 +65,29 @@ class SecureTable(ctk.CTkFrame):
         self.tree.delete(*self.tree.get_children())
         for row in rows:
             self.tree.insert("", tk.END, values=row)
+
+    def get_selected_values(self):
+        selected = self.tree.selection()
+
+        if not selected:
+            return None
+
+        item = self.tree.item(selected[0])
+        return item.get("values")
+
+    def get_selected_entry_id(self):
+        values = self.get_selected_values()
+
+        if not values:
+            return None
+
+        return values[0]
+
+    def delete_selected_row(self):
+        selected = self.tree.selection()
+
+        if not selected:
+            return False
+
+        self.tree.delete(selected[0])
+        return True

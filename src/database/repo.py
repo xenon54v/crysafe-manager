@@ -117,3 +117,14 @@ class VaultRepository:
             """
         )
         return cursor.fetchall()
+
+    def delete_entry(self, entry_id: int) -> bool:
+        cursor = self.db.execute(
+            """
+            DELETE FROM vault_entries
+            WHERE id = ?;
+            """,
+            (entry_id,),
+        )
+
+        return cursor.rowcount > 0
