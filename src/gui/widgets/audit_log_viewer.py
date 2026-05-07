@@ -3,12 +3,15 @@
 PINK = "#d98ca3"
 PINK_HOVER = "#c97c93"
 
+
 class AuditLogViewer(ctk.CTkToplevel):
-    def __init__(self, master=None):
+    def __init__(self, master=None, audit_repo=None):
         super().__init__(master)
 
+        self.audit_repo = audit_repo
+
         self.title("Audit Log")
-        self.geometry("700x450")
+        self.geometry("850x500")
 
         self.transient(master)
 
@@ -33,6 +36,17 @@ class AuditLogViewer(ctk.CTkToplevel):
         )
         self.title_label.pack(side="left", padx=20, pady=15)
 
+        self.refresh_button = ctk.CTkButton(
+            self.header,
+            text="Refresh",
+            width=100,
+            command=self._load_logs,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white"
+        )
+        self.refresh_button.pack(side="right", padx=(0, 20), pady=15)
+
         self.close_button = ctk.CTkButton(
             self.header,
             text="Close",
@@ -42,21 +56,74 @@ class AuditLogViewer(ctk.CTkToplevel):
             hover_color=PINK_HOVER,
             text_color="white"
         )
-        self.close_button.pack(side="right", padx=20, pady=15)
+        self.close_button.pack(side="right", padx=10, pady=15)
 
-        self.body = ctk.CTkFrame(self, corner_radius=16)
+        self.body = ctk.CTkScrollableFrame(self, corner_radius=16)
         self.body.grid(row=1, column=0, sticky="nsew", padx=20, pady=20)
 
-        self.info_label = ctk.CTkLabel(
-            self.body,
-            text="Audit Log Viewer will be implemented in Sprint 5",
-            font=ctk.CTkFont(size=16)
-        )
-        self.info_label.pack(pady=(30, 10))
+        self._load_logs()
 
-        self.note_label = ctk.CTkLabel(
-            self.body,
-            text="This window is currently a styled placeholder.",
-            text_color="gray"
-        )
-        self.note_label.pack()
+    def _clear_body(self):
+        for widget in self.body.winfo_children():
+            widget.destroy()
+
+    def _load_logs(self):
+        self._clear_body()
+
+        if self.audit_repo is None:
+            ctk.CTkLabel(
+                self.body,
+                text="Audit repository is not connected.",
+                text_color="gray"
+            ).pack(anchor="w", padx=10, pady=10)
+            return
+
+        rows = self.audit_repo.get_logs()
+
+        if not rows:
+            ctk.CTkLabel(
+                self.body,
+                text="Audit log is empty.",
+                text_color="gray"
+            ).pack(anchor="w", padx=10, pady=10)
+            return
+
+        header = ctk.CTkFrame(self.body, fg_color="transparent")
+        header.pack(fill="x", padx=10, pady=(5, 8))
+
+        for text, width in [
+            ("ID", 50),
+            ("Action", 140),
+            ("Timestamp", 220),
+            ("Entry ID", 80),
+            ("Details", 300),
+        ]:
+            ctk.CTkLabel(
+                header,
+                text=text,
+                width=width,
+                anchor="w",
+                font=ctk.CTkFont(size=13, weight="bold")
+            ).pack(side="left", padx=4)
+
+        for row in rows:
+            log_id, action, timestamp, entry_id, details = row
+
+            line = ctk.CTkFrame(self.body, fg_color="transparent")
+            line.pack(fill="x", padx=10, pady=3)
+
+            values = [
+                (str(log_id), 50),
+                (str(action), 140),
+                (str(timestamp), 220),
+                (str(entry_id) if entry_id is not None else "-", 80),
+                (str(details) if details else "-", 300),
+            ]
+
+            for value, width in values:
+                ctk.CTkLabel(
+                    line,
+                    text=value,
+                    width=width,
+                    anchor="w"
+                ).pack(side="left", padx=4)

@@ -12,6 +12,7 @@ from src.database.repo import VaultRepository
 from src.gui.add_entry_dialog import AddEntryDialog
 from src.core.crypto.authentication import AuthenticationService
 from src.core.events import EventBus, UserLoggedIn, UserLoggedOut, now_utc
+from src.database.audit_repo import AuditRepository
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -25,6 +26,7 @@ class MainWindow(ctk.CTk):
 
         self.db = None
         self.repo = None
+        self.audit_repo = None
         self.master_password = None
         self.state_manager = StateManager(on_auto_lock=self._handle_auto_lock)
 
