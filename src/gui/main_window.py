@@ -310,6 +310,12 @@ class MainWindow(ctk.CTk):
             self.repo.key_manager.lock()
 
     def _handle_auto_lock(self):
+        if self.audit_repo is not None:
+            self.audit_repo.add_log(
+                action="auto_lock",
+                details="Session locked due to inactivity"
+            )
+
         self.after(0, self._logout)
 
     def _logout(self):
@@ -318,7 +324,7 @@ class MainWindow(ctk.CTk):
                 action="logout",
                 details="User logged out"
             )
-            
+
         self.event_bus.publish(
             UserLoggedOut(
                 name="UserLoggedOut",
