@@ -186,3 +186,76 @@ class VaultRepository:
         )
 
         return cursor.rowcount > 0
+
+    def change_master_password(
+        self,
+        old_password: str,
+        new_password: str,
+    ) -> bool:
+        self.key_manager.unlock_with_password(self.db, old_password)
+
+        cursor = self.db.execute(
+            """
+            SELECT id, encrypted_password
+            FROM vault_entries
+            ORDER BY id;
+            """
+        )
+        rows = cursor.fetchall()
+
+        decrypted_entries = []
+
+        for entry_id, encrypted_password in rows:
+            decrypted_password = self.crypto.decrypt(
+                encrypted_password,
+                self.key_manager,
+            )
+
+            decrypted_entries.append((entry_id, decrypted_password))
+
+        new_salt = self.key_manager.generate_salt()
+        new_auth_hash = self.key_manager.create_auth_hash(new_password).hash
+        new_key = self.key_manager.derive_key(new_password, new_salt)
+
+        self.key_manager.clear_active_key()
+        self.key_manager._active_salt = new_salt
+        self.key_manager._active_key = new_key
+        self.key_manager.store_key()
+
+        for entry_id, decrypted_password in decrypted_entries:
+            new_encrypted_password = self.crypto.encrypt(
+                decrypted_password,
+                self.key_manager,
+            )
+
+            self.db.execute(
+                """
+                UPDATE vault_entries
+                SET encrypted_password = ?,
+                    updated_at = ?
+                WHERE id = ?;
+                """,
+                (
+                    new_encrypted_password,
+                    datetime.now().isoformat(),
+                    entry_id,
+                ),
+            )
+
+        self.db.execute(
+            """
+            UPDATE key_store
+            SET salt = ?,
+                hash = ?,
+                params = ?
+            WHERE key_type = ?;
+            """,
+            (
+                new_salt,
+                new_auth_hash,
+                self.key_manager._build_key_params(),
+                "master",
+            ),
+        )
+
+        return True

@@ -14,6 +14,7 @@ from src.core.crypto.authentication import AuthenticationService
 from src.core.events import EventBus, UserLoggedIn, UserLoggedOut, now_utc
 from src.database.audit_repo import AuditRepository
 from src.gui.edit_entry_dialog import EditEntryDialog
+from src.gui.change_password_dialog import ChangePasswordDialog
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -74,6 +75,7 @@ class MainWindow(ctk.CTk):
             self.header,
             text="Settings",
             width=100,
+            command=self._change_master_password,
             fg_color=PINK,
             hover_color=PINK_HOVER,
             text_color="white"
@@ -368,6 +370,41 @@ class MainWindow(ctk.CTk):
 
         if db_path is not None:
             self.after(100, lambda: self._show_login_dialog(db_path))
+
+    def _change_master_password(self):
+        dialog = ChangePasswordDialog(self)
+        self.wait_window(dialog)
+
+        if dialog.result is None:
+            return
+
+        old_password = dialog.result["old_password"]
+        new_password = dialog.result["new_password"]
+
+        try:
+            self.repo.change_master_password(
+                old_password=old_password,
+                new_password=new_password,
+            )
+
+        except ValueError:
+            messagebox.showerror(
+                "Change password",
+                "Current master password is incorrect."
+            )
+            return
+
+        self.master_password = new_password
+
+        self.audit_repo.add_log(
+            action="change_master_password",
+            details="Master password changed and vault re-encrypted"
+        )
+
+        messagebox.showinfo(
+            "Change password",
+            "Master password changed successfully."
+        )
 
     def _edit_entry(self):
         entry_id = self.table.get_selected_entry_id()
