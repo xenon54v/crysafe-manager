@@ -278,7 +278,7 @@ class MainWindow(ctk.CTk):
                 action="app_close",
                 details="Application closed"
             )
-            
+
         self._clear_sensitive_data()
         self.state_manager.stop_timers()
 
@@ -308,6 +308,11 @@ class MainWindow(ctk.CTk):
 
         rows = self.repo.get_entries_for_table()
         self.table.set_rows(rows)
+
+        self.audit_repo.add_log(
+            action="add_entry",
+            details=f"Added entry: {r.title}"
+        )
 
     def _clear_sensitive_data(self):
         self.master_password = None
