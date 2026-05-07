@@ -493,6 +493,7 @@ class MainWindow(ctk.CTk):
 
         self.audit_repo.add_log(
             action="edit_entry",
+            entry_id=entry_id,
             details=f"Edited entry id={entry_id}"
         )
 
@@ -533,6 +534,7 @@ class MainWindow(ctk.CTk):
 
         self.audit_repo.add_log(
             action="delete_entry",
+            entry_id=entry_id,
             details=f"Deleted entry id={entry_id}"
         )
 
