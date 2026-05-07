@@ -32,15 +32,26 @@ class Database:
         self._ensure_default_settings()
 
     def _ensure_default_settings(self) -> None:
+        defaults = [
+            ("auto_lock_timeout", "300", 0),
+            ("password_policy_min_length", "12", 0),
+            ("password_policy_require_uppercase", "1", 0),
+            ("password_policy_require_lowercase", "1", 0),
+            ("password_policy_require_digit", "1", 0),
+            ("password_policy_require_special", "1", 0),
+            ("kdf_params_version", "1", 0),
+        ]
+
         with self._connection:
-            self._connection.execute(
-                """
-                INSERT OR IGNORE INTO settings
-                (setting_key, setting_value, encrypted)
-                VALUES (?, ?, ?);
-                """,
-                ("auto_lock_timeout", "300", 0)
-            )
+            for setting_key, setting_value, encrypted in defaults:
+                self._connection.execute(
+                    """
+                    INSERT OR IGNORE INTO settings
+                    (setting_key, setting_value, encrypted)
+                    VALUES (?, ?, ?);
+                    """,
+                    (setting_key, setting_value, encrypted)
+                )
 
     def _initialize_schema(self) -> None:
         current_version = self._get_user_version()
