@@ -13,6 +13,7 @@ from src.gui.add_entry_dialog import AddEntryDialog
 from src.core.crypto.authentication import AuthenticationService
 from src.core.events import EventBus, UserLoggedIn, UserLoggedOut, now_utc
 from src.database.audit_repo import AuditRepository
+from src.gui.edit_entry_dialog import EditEntryDialog
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -363,7 +364,69 @@ class MainWindow(ctk.CTk):
             self.after(100, lambda: self._show_login_dialog(db_path))
 
     def _edit_entry(self):
-        print("Edit entry clicked")
+        entry_id = self.table.get_selected_entry_id()
+
+        if entry_id is None:
+            messagebox.showwarning(
+                "Редактирование записи",
+                "Сначала выберите запись в таблице."
+            )
+            return
+
+        entry = self.repo.get_entry_by_id(entry_id)
+
+        if entry is None:
+            messagebox.showerror(
+                "Ошибка редактирования",
+                "Запись не найдена."
+            )
+            return
+
+        dialog = EditEntryDialog(self, entry=entry)
+        self.wait_window(dialog)
+
+        if dialog.result is None:
+            return
+
+        r = dialog.result
+
+        if not r["password"]:
+            messagebox.showwarning(
+                "Редактирование записи",
+                "Введите новый пароль для записи."
+            )
+            return
+
+        updated = self.repo.update_entry(
+            entry_id=entry_id,
+            master_password=self.master_password,
+            title=r["title"],
+            username=r["username"],
+            password=r["password"],
+            url=r["url"],
+            notes=r["notes"],
+            tags=r["tags"],
+        )
+
+        if not updated:
+            messagebox.showerror(
+                "Ошибка редактирования",
+                "Не удалось обновить запись."
+            )
+            return
+
+        rows = self.repo.get_entries_for_table()
+        self.table.set_rows(rows)
+
+        self.audit_repo.add_log(
+            action="edit_entry",
+            details=f"Edited entry id={entry_id}"
+        )
+
+        messagebox.showinfo(
+            "Редактирование записи",
+            "Запись успешно обновлена."
+        )
 
     def _delete_entry(self):
         entry_id = self.table.get_selected_entry_id()

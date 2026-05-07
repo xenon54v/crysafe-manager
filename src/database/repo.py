@@ -128,3 +128,61 @@ class VaultRepository:
         )
 
         return cursor.rowcount > 0
+
+    def get_entry_by_id(self, entry_id: int):
+        cursor = self.db.execute(
+            """
+            SELECT id, title, username, encrypted_password, url, notes, tags
+            FROM vault_entries
+            WHERE id = ?;
+            """,
+            (entry_id,),
+        )
+
+        return cursor.fetchone()
+
+    def update_entry(
+        self,
+        entry_id: int,
+        master_password: str,
+        title: str,
+        username: str,
+        password: str,
+        url: str,
+        notes: str,
+        tags: str,
+    ) -> bool:
+        self.key_manager.unlock_with_password(self.db, master_password)
+
+        encrypted_password = self.crypto.encrypt(
+            password.encode("utf-8"),
+            self.key_manager,
+        )
+
+        now = datetime.now().isoformat()
+
+        cursor = self.db.execute(
+            """
+            UPDATE vault_entries
+            SET title = ?,
+                username = ?,
+                encrypted_password = ?,
+                url = ?,
+                notes = ?,
+                tags = ?,
+                updated_at = ?
+            WHERE id = ?;
+            """,
+            (
+                title,
+                username,
+                encrypted_password,
+                url,
+                notes,
+                tags,
+                now,
+                entry_id,
+            ),
+        )
+
+        return cursor.rowcount > 0
