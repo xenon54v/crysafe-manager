@@ -1,4 +1,4 @@
-﻿SCHEMA_VERSION = 2
+﻿SCHEMA_VERSION = 3
 
 CREATE_TABLES_SQL = [
     """
@@ -41,7 +41,9 @@ CREATE_TABLES_SQL = [
         key_type TEXT UNIQUE NOT NULL,
         salt BLOB NOT NULL,
         hash TEXT NOT NULL,
-        params TEXT
+        params TEXT,
+        version INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
     """
 ]

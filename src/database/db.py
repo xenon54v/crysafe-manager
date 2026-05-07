@@ -65,6 +65,25 @@ class Database:
 
                 self._set_user_version(2)
 
+                if current_version < 3:
+                    columns = self._connection.execute(
+                        "PRAGMA table_info(key_store);"
+                    ).fetchall()
+
+                    column_names = [column[1] for column in columns]
+
+                    if "version" not in column_names:
+                        self._connection.execute(
+                            "ALTER TABLE key_store ADD COLUMN version INTEGER NOT NULL DEFAULT 1;"
+                        )
+
+                    if "created_at" not in column_names:
+                        self._connection.execute(
+                            "ALTER TABLE key_store ADD COLUMN created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP;"
+                        )
+
+                    self._set_user_version(3)
+
     def _get_user_version(self) -> int:
         cursor = self._connection.execute("PRAGMA user_version;")
         return cursor.fetchone()[0]
@@ -83,7 +102,7 @@ class Database:
         if self._connection:
             self._connection.close()
 
-    # -------- Sprint 8 stub --------
+    # Sprint 8 stub
 
     def backup(self) -> None:
         raise NotImplementedError("Backup will be implemented in Sprint 8")

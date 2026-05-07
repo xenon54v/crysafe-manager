@@ -2,7 +2,6 @@
 
 from tkinter import messagebox
 from src.core.config import ConfigManager
-
 from src.gui.widgets.secure_table import SecureTable
 from src.gui.widgets.audit_log_viewer import AuditLogViewer
 from src.gui.setup_wizard import SetupWizard, LoginDialog
@@ -15,6 +14,7 @@ from src.core.events import EventBus, UserLoggedIn, UserLoggedOut, now_utc
 from src.database.audit_repo import AuditRepository
 from src.gui.edit_entry_dialog import EditEntryDialog
 from src.gui.change_password_dialog import ChangePasswordDialog
+from src.gui.settings_dialog import SettingsDialog
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -75,7 +75,7 @@ class MainWindow(ctk.CTk):
             self.header,
             text="Settings",
             width=100,
-            command=self._change_master_password,
+            command=self._open_settings,
             fg_color=PINK,
             hover_color=PINK_HOVER,
             text_color="white"
@@ -337,6 +337,13 @@ class MainWindow(ctk.CTk):
             )
 
         self.after(0, self._logout)
+
+    def _open_settings(self):
+        dialog = SettingsDialog(self)
+        self.wait_window(dialog)
+
+        if dialog.result == "change_master_password":
+            self._change_master_password()
 
     def _logout(self):
         if self.audit_repo is not None:

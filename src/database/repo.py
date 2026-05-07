@@ -2,6 +2,7 @@ from datetime import datetime
 
 from src.core.crypto.placeholder import AES256Placeholder
 from src.core.key_manager import KeyManager
+from src.core.crypto.placeholder import AES256Placeholder, zero_bytes
 
 class VaultRepository:
     def __init__(self, db):
@@ -206,9 +207,11 @@ class VaultRepository:
         decrypted_entries = []
 
         for entry_id, encrypted_password in rows:
-            decrypted_password = self.crypto.decrypt(
-                encrypted_password,
-                self.key_manager,
+            decrypted_password = bytearray(
+                self.crypto.decrypt(
+                    encrypted_password,
+                    self.key_manager,
+                )
             )
 
             decrypted_entries.append((entry_id, decrypted_password))
@@ -224,9 +227,11 @@ class VaultRepository:
 
         for entry_id, decrypted_password in decrypted_entries:
             new_encrypted_password = self.crypto.encrypt(
-                decrypted_password,
+                bytes(decrypted_password),
                 self.key_manager,
             )
+
+            zero_bytes(decrypted_password)
 
             self.db.execute(
                 """
