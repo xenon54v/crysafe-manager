@@ -184,6 +184,11 @@ class MainWindow(ctk.CTk):
         self.state_manager.start_inactivity_timer(300)
         self.auth_service.login("local_user")
 
+        self.audit_repo.add_log(
+            action="login",
+            details="Initial vault setup and login"
+        )
+
         self.status.configure(
             text=f"Status: Unlocked | DB: {r.db_path} | ENC: {r.enc_scheme}"
         )
@@ -238,6 +243,11 @@ class MainWindow(ctk.CTk):
             return
 
         self.auth_service.login("local_user")
+
+        self.audit_repo.add_log(
+            action="login",
+            details="Successful login"
+        )
 
         self.event_bus.publish(
             UserLoggedIn(
