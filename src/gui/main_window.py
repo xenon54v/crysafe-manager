@@ -273,6 +273,12 @@ class MainWindow(ctk.CTk):
         AuditLogViewer(self, self.audit_repo)
 
     def _on_close(self):
+        if self.audit_repo is not None:
+            self.audit_repo.add_log(
+                action="app_close",
+                details="Application closed"
+            )
+            
         self._clear_sensitive_data()
         self.state_manager.stop_timers()
 
