@@ -173,6 +173,7 @@ class MainWindow(ctk.CTk):
         self.master_password = r.master_password
 
         self.repo = VaultRepository(self.db)
+        self.audit_repo = AuditRepository(self.db)
         self.repo.insert_sample_entries(r.master_password)
 
         rows = self.repo.get_entries_for_table()
@@ -199,6 +200,7 @@ class MainWindow(ctk.CTk):
         self.db.connect()
 
         self.repo = VaultRepository(self.db)
+        self.audit_repo = AuditRepository(self.db)
 
         try:
             self.repo.key_manager.unlock_with_password(
@@ -258,7 +260,7 @@ class MainWindow(ctk.CTk):
         )
 
     def _open_logs(self):
-        AuditLogViewer(self)
+        AuditLogViewer(self, self.audit_repo)
 
     def _on_close(self):
         self._clear_sensitive_data()
