@@ -29,6 +29,18 @@ class Database:
         self._connection.execute("PRAGMA foreign_keys = ON;")
 
         self._initialize_schema()
+        self._ensure_default_settings()
+
+    def _ensure_default_settings(self) -> None:
+        with self._connection:
+            self._connection.execute(
+                """
+                INSERT OR IGNORE INTO settings
+                (setting_key, setting_value, encrypted)
+                VALUES (?, ?, ?);
+                """,
+                ("auto_lock_timeout", "300", 0)
+            )
 
     def _initialize_schema(self) -> None:
         current_version = self._get_user_version()
@@ -65,24 +77,32 @@ class Database:
 
                 self._set_user_version(2)
 
-                if current_version < 3:
-                    columns = self._connection.execute(
-                        "PRAGMA table_info(key_store);"
-                    ).fetchall()
+            if current_version < 3:
+                columns = self._connection.execute(
+                    "PRAGMA table_info(key_store);"
+                ).fetchall()
 
-                    column_names = [column[1] for column in columns]
+                column_names = [column[1] for column in columns]
 
-                    if "version" not in column_names:
-                        self._connection.execute(
-                            "ALTER TABLE key_store ADD COLUMN version INTEGER NOT NULL DEFAULT 1;"
-                        )
+                if "version" not in column_names:
+                    self._connection.execute(
+                        "ALTER TABLE key_store ADD COLUMN version INTEGER NOT NULL DEFAULT 1;"
+                    )
 
-                    if "created_at" not in column_names:
-                        self._connection.execute(
-                            "ALTER TABLE key_store ADD COLUMN created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP;"
-                        )
+                if "created_at" not in column_names:
+                    self._connection.execute(
+                        "ALTER TABLE key_store ADD COLUMN created_at TEXT;"
+                    )
 
-                    self._set_user_version(3)
+                    self._connection.execute(
+                        """
+                        UPDATE key_store
+                        SET created_at = datetime('now')
+                        WHERE created_at IS NULL;
+                        """
+                    )
+
+                self._set_user_version(3)
 
     def _get_user_version(self) -> int:
         cursor = self._connection.execute("PRAGMA user_version;")

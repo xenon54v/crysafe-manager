@@ -184,7 +184,7 @@ class MainWindow(ctk.CTk):
 
         self.state_manager.login("local_user")
 
-        self.state_manager.start_inactivity_timer(300)
+        self.state_manager.start_inactivity_timer(self._get_auto_lock_timeout())
         self.auth_service.login("local_user")
 
         self.audit_repo.add_log(
@@ -272,11 +272,34 @@ class MainWindow(ctk.CTk):
         self.table.set_rows(rows)
 
         self.state_manager.login("local_user")
-        self.state_manager.start_inactivity_timer(300)
+        self.state_manager.start_inactivity_timer(self._get_auto_lock_timeout())
 
         self.status.configure(
             text=f"Status: Unlocked | DB: {db_path}"
         )
+
+    def _get_auto_lock_timeout(self) -> int:
+        if self.db is None:
+            return 300
+
+        cursor = self.db.execute(
+            """
+            SELECT setting_value
+            FROM settings
+            WHERE setting_key = ?;
+            """,
+            ("auto_lock_timeout",)
+        )
+
+        row = cursor.fetchone()
+
+        if row is None:
+            return 300
+
+        try:
+            return int(row[0])
+        except (TypeError, ValueError):
+            return 300
 
     def _open_logs(self):
         AuditLogViewer(self, self.audit_repo)
