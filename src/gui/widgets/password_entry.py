@@ -24,12 +24,69 @@ class PasswordEntry(ctk.CTkFrame):
             command=self.toggle,
             fg_color=PINK,
             hover_color=PINK_HOVER,
-            text_color="white"
+            text_color="white",
         )
         self.button.grid(row=0, column=1)
 
+        self._bind_clipboard_protection()
+
+    def _bind_clipboard_protection(self) -> None:
+        sequences = (
+            "<Control-c>", "<Control-C>",
+            "<Control-x>", "<Control-X>",
+            "<Control-v>", "<Control-V>",
+            "<Control-Insert>",
+            "<Shift-Insert>",
+            "<<Copy>>",
+            "<<Cut>>",
+            "<<Paste>>",
+            "<Button-3>",
+        )
+
+        for sequence in sequences:
+            self.bind(sequence, self._block_clipboard)
+            self.entry.bind(sequence, self._block_clipboard)
+
+        self.entry.bind("<FocusIn>", self._enable_global_block)
+        self.entry.bind("<FocusOut>", self._disable_global_block)
+
+    def _enable_global_block(self, event=None):
+        root = self.winfo_toplevel()
+
+        for sequence in (
+            "<Control-c>", "<Control-C>",
+            "<Control-x>", "<Control-X>",
+            "<Control-v>", "<Control-V>",
+            "<<Copy>>",
+            "<<Cut>>",
+            "<<Paste>>",
+        ):
+            root.bind_all(sequence, self._block_clipboard)
+
+    def _disable_global_block(self, event=None):
+        root = self.winfo_toplevel()
+
+        for sequence in (
+            "<Control-c>", "<Control-C>",
+            "<Control-x>", "<Control-X>",
+            "<Control-v>", "<Control-V>",
+            "<<Copy>>",
+            "<<Cut>>",
+            "<<Paste>>",
+        ):
+            root.unbind_all(sequence)
+
+    def _block_clipboard(self, event=None):
+        try:
+            self.clipboard_clear()
+        except Exception:
+            pass
+
+        return "break"
+
     def toggle(self):
         self._shown = not self._shown
+
         if self._shown:
             self.entry.configure(show="")
             self.button.configure(text="Hide")
