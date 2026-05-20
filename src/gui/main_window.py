@@ -1,5 +1,4 @@
 ﻿import customtkinter as ctk
-import tkinter as tk
 
 from src.core.config import ConfigManager
 from src.gui.widgets.secure_table import SecureTable
@@ -16,6 +15,7 @@ from src.database.audit_repo import AuditRepository
 from src.gui.edit_entry_dialog import EditEntryDialog
 from src.gui.change_password_dialog import ChangePasswordDialog
 from src.gui.settings_dialog import SettingsDialog
+from src.gui.widgets.app_menu_bar import AppMenuBar
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -43,13 +43,34 @@ class MainWindow(ctk.CTk):
         self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        self._create_custom_menu_bar()
+        self._create_app_menu()
         self._create_header()
         self._create_table()
         self._create_status_bar()
 
         self.after(100, self._start_auth_flow)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    # App menu
+
+    def _create_app_menu(self):
+        self.menu_bar = AppMenuBar(
+            self,
+            actions={
+                "new": self._on_new,
+                "open": self._on_open,
+                "backup": self._on_backup,
+                "logout": self._logout,
+                "exit": self._on_close,
+                "add": self._add_entry,
+                "edit": self._edit_entry,
+                "delete": self._delete_entry,
+                "logs": self._open_logs,
+                "settings": self._open_settings,
+                "about": self._on_about,
+            }
+        )
+        self.menu_bar.grid(row=0, column=0, sticky="ew")
 
     # Custom dialogs
 
@@ -90,137 +111,6 @@ class MainWindow(ctk.CTk):
         self.wait_window(dialog)
         return bool(dialog.result)
 
-    # Custom menu bar
-
-    def _create_custom_menu_bar(self) -> None:
-        self.menu_frame = ctk.CTkFrame(self, height=36, corner_radius=0)
-        self.menu_frame.grid(row=0, column=0, sticky="ew")
-        self.menu_frame.grid_columnconfigure(10, weight=1)
-
-        self.file_menu_button = self._create_menu_button(
-            text="File",
-            column=0,
-            items=[
-                ("New", self._on_new),
-                ("Open", self._on_open),
-                ("Backup", self._on_backup),
-                ("separator", None),
-                ("Exit", self._on_close),
-            ],
-            padx=(10, 2),
-        )
-
-        self.edit_menu_button = self._create_menu_button(
-            text="Edit",
-            column=1,
-            items=[
-                ("Add", self._add_entry),
-                ("Edit", self._edit_entry),
-                ("Delete", self._delete_entry),
-            ],
-        )
-
-        self.view_menu_button = self._create_menu_button(
-            text="View",
-            column=2,
-            items=[
-                ("Logs", self._open_logs),
-                ("Settings", self._open_settings),
-            ],
-        )
-
-        self.help_menu_button = self._create_menu_button(
-            text="Help",
-            column=3,
-            items=[
-                ("About", self._on_about),
-            ],
-        )
-
-    def _create_menu_button(self, text: str, column: int, items: list, padx=2):
-        button = ctk.CTkButton(
-            self.menu_frame,
-            text=text,
-            width=70,
-            height=28,
-            fg_color="transparent",
-            hover_color=("gray80", "gray25"),
-            text_color=("gray10", "gray90"),
-            command=lambda: self._show_custom_dropdown(button, items)
-        )
-        button.grid(row=0, column=column, padx=padx, pady=4)
-        return button
-
-    def _show_custom_dropdown(self, widget, items) -> None:
-        if self.dropdown_window is not None:
-            try:
-                self.dropdown_window.destroy()
-            except tk.TclError:
-                pass
-            self.dropdown_window = None
-
-        self.dropdown_window = ctk.CTkToplevel(self)
-        self.dropdown_window.overrideredirect(True)
-        self.dropdown_window.attributes("-topmost", True)
-
-        frame = ctk.CTkFrame(
-            self.dropdown_window,
-            corner_radius=10,
-            border_width=1
-        )
-        frame.pack(fill="both", expand=True, padx=2, pady=2)
-
-        row = 0
-
-        for label, command in items:
-            if label == "separator":
-                separator = ctk.CTkFrame(
-                    frame,
-                    height=1,
-                    fg_color=("gray70", "gray35")
-                )
-                separator.grid(row=row, column=0, sticky="ew", padx=8, pady=4)
-                row += 1
-                continue
-
-            item_button = ctk.CTkButton(
-                frame,
-                text=label,
-                width=150,
-                height=34,
-                anchor="w",
-                fg_color="transparent",
-                hover_color=("gray80", "gray25"),
-                text_color=("gray10", "gray90"),
-                command=lambda cmd=command: self._run_dropdown_command(cmd)
-            )
-            item_button.grid(row=row, column=0, sticky="ew", padx=6, pady=3)
-            row += 1
-
-        x = widget.winfo_rootx()
-        y = widget.winfo_rooty() + widget.winfo_height() + 2
-
-        self.dropdown_window.geometry(f"+{x}+{y}")
-        self.dropdown_window.focus_force()
-
-        self.dropdown_window.bind("<FocusOut>", lambda event: self._close_dropdown())
-        self.dropdown_window.bind("<Escape>", lambda event: self._close_dropdown())
-
-    def _run_dropdown_command(self, command) -> None:
-        self._close_dropdown()
-
-        if command is not None:
-            command()
-
-    def _close_dropdown(self) -> None:
-        if self.dropdown_window is not None:
-            try:
-                self.dropdown_window.destroy()
-            except tk.TclError:
-                pass
-
-            self.dropdown_window = None
-
     #  Menu actions
 
     def _on_new(self) -> None:
@@ -252,7 +142,7 @@ class MainWindow(ctk.CTk):
     def _create_header(self):
         self.header = ctk.CTkFrame(self, corner_radius=0)
         self.header.grid(row=1, column=0, sticky="ew")
-        self.header.grid_columnconfigure(1, weight=1)
+        self.header.grid_columnconfigure(0, weight=1)
 
         self.title_label = ctk.CTkLabel(
             self.header,
@@ -261,39 +151,6 @@ class MainWindow(ctk.CTk):
         )
         self.title_label.grid(row=0, column=0, padx=20, pady=15, sticky="w")
 
-        self.logs_button = ctk.CTkButton(
-            self.header,
-            text="Logs",
-            width=100,
-            command=self._open_logs,
-            fg_color=PINK,
-            hover_color=PINK_HOVER,
-            text_color="white"
-        )
-        self.logs_button.grid(row=0, column=2, padx=10, pady=15)
-
-        self.settings_button = ctk.CTkButton(
-            self.header,
-            text="Settings",
-            width=100,
-            command=self._open_settings,
-            fg_color=PINK,
-            hover_color=PINK_HOVER,
-            text_color="white"
-        )
-        self.settings_button.grid(row=0, column=3, padx=10, pady=15)
-
-        self.logout_button = ctk.CTkButton(
-            self.header,
-            text="Logout",
-            width=100,
-            command=self._logout,
-            fg_color=PINK,
-            hover_color=PINK_HOVER,
-            text_color="white"
-        )
-        self.logout_button.grid(row=0, column=4, padx=(0, 20), pady=15)
-
     def _create_table(self):
         self.table_frame = ctk.CTkFrame(self, corner_radius=18)
         self.table_frame.grid(row=2, column=0, sticky="nsew", padx=20, pady=20)
@@ -301,44 +158,7 @@ class MainWindow(ctk.CTk):
         self.table_frame.grid_columnconfigure(0, weight=1)
 
         self.table = SecureTable(self.table_frame)
-        self.table.grid(row=0, column=0, sticky="nsew", padx=10, pady=(10, 5))
-
-        self.actions_frame = ctk.CTkFrame(self.table_frame, fg_color="transparent")
-        self.actions_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(5, 10))
-        self.actions_frame.grid_columnconfigure(0, weight=1)
-
-        self.add_button = ctk.CTkButton(
-            self.actions_frame,
-            text="Add",
-            width=110,
-            fg_color=PINK,
-            hover_color=PINK_HOVER,
-            text_color="white",
-            command=self._add_entry
-        )
-        self.add_button.pack(side="left", padx=(0, 10))
-
-        self.edit_button = ctk.CTkButton(
-            self.actions_frame,
-            text="Edit",
-            width=110,
-            fg_color=PINK,
-            hover_color=PINK_HOVER,
-            text_color="white",
-            command=self._edit_entry
-        )
-        self.edit_button.pack(side="left", padx=(0, 10))
-
-        self.delete_button = ctk.CTkButton(
-            self.actions_frame,
-            text="Delete",
-            width=110,
-            fg_color=PINK,
-            hover_color=PINK_HOVER,
-            text_color="white",
-            command=self._delete_entry
-        )
-        self.delete_button.pack(side="left")
+        self.table.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
     def _create_status_bar(self):
         self.status_frame = ctk.CTkFrame(self, corner_radius=14)
@@ -816,7 +636,9 @@ class MainWindow(ctk.CTk):
                 details="Application closed"
             )
 
-        self._close_dropdown()
+        if hasattr(self, "menu_bar"):
+            self.menu_bar.close_dropdown()
+
         self._clear_sensitive_data()
         self.state_manager.stop_timers()
 
