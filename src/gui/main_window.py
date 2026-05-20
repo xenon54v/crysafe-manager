@@ -1,10 +1,10 @@
 ﻿import customtkinter as ctk
 import tkinter as tk
 
-from tkinter import messagebox
 from src.core.config import ConfigManager
 from src.gui.widgets.secure_table import SecureTable
 from src.gui.widgets.audit_log_viewer import AuditLogViewer
+from src.gui.widgets.custom_dialog import CustomDialog
 from src.gui.setup_wizard import SetupWizard, LoginDialog
 from src.core.state_manager import StateManager
 from src.database.db import Database
@@ -31,6 +31,7 @@ class MainWindow(ctk.CTk):
         self.repo = None
         self.audit_repo = None
         self.master_password = None
+        self.dropdown_window = None
 
         self.state_manager = StateManager(on_auto_lock=self._handle_auto_lock)
         self.auth_service = AuthenticationService()
@@ -38,9 +39,6 @@ class MainWindow(ctk.CTk):
 
         self.title("CryptoSafe Manager")
         self.geometry("1100x700")
-
-        # Обязательное меню по требованиям Sprint 1
-        self._create_custom_menu_bar()
 
         self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(0, weight=1)
@@ -53,171 +51,207 @@ class MainWindow(ctk.CTk):
         self.after(100, self._start_auth_flow)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
+    # Custom dialogs
+
+    def _show_info(self, title: str, message: str) -> None:
+        dialog = CustomDialog(
+            self,
+            title=title,
+            message=message,
+            dialog_type="info"
+        )
+        self.wait_window(dialog)
+
+    def _show_warning(self, title: str, message: str) -> None:
+        dialog = CustomDialog(
+            self,
+            title=title,
+            message=message,
+            dialog_type="warning"
+        )
+        self.wait_window(dialog)
+
+    def _show_error(self, title: str, message: str) -> None:
+        dialog = CustomDialog(
+            self,
+            title=title,
+            message=message,
+            dialog_type="error"
+        )
+        self.wait_window(dialog)
+
+    def _ask_yes_no(self, title: str, message: str) -> bool:
+        dialog = CustomDialog(
+            self,
+            title=title,
+            message=message,
+            dialog_type="question"
+        )
+        self.wait_window(dialog)
+        return bool(dialog.result)
+
+    # Custom menu bar
+
     def _create_custom_menu_bar(self) -> None:
         self.menu_frame = ctk.CTkFrame(self, height=36, corner_radius=0)
         self.menu_frame.grid(row=0, column=0, sticky="ew")
         self.menu_frame.grid_columnconfigure(10, weight=1)
 
-        self.file_menu_button = ctk.CTkButton(
-            self.menu_frame,
+        self.file_menu_button = self._create_menu_button(
             text="File",
-            width=70,
-            height=28,
-            fg_color="transparent",
-            hover_color=("gray80", "gray25"),
-            text_color=("gray10", "gray90"),
-            command=lambda: self._show_dropdown_menu(
-                self.file_menu_button,
-                [
-                    ("New", self._on_new),
-                    ("Open", self._on_open),
-                    ("Backup", self._on_backup),
-                    ("separator", None),
-                    ("Exit", self._on_close),
-                ],
-            ),
+            column=0,
+            items=[
+                ("New", self._on_new),
+                ("Open", self._on_open),
+                ("Backup", self._on_backup),
+                ("separator", None),
+                ("Exit", self._on_close),
+            ],
+            padx=(10, 2),
         )
-        self.file_menu_button.grid(row=0, column=0, padx=(8, 2), pady=4)
 
-        self.edit_menu_button = ctk.CTkButton(
-            self.menu_frame,
+        self.edit_menu_button = self._create_menu_button(
             text="Edit",
-            width=70,
-            height=28,
-            fg_color="transparent",
-            hover_color=("gray80", "gray25"),
-            text_color=("gray10", "gray90"),
-            command=lambda: self._show_dropdown_menu(
-                self.edit_menu_button,
-                [
-                    ("Add", self._add_entry),
-                    ("Edit", self._edit_entry),
-                    ("Delete", self._delete_entry),
-                ],
-            ),
+            column=1,
+            items=[
+                ("Add", self._add_entry),
+                ("Edit", self._edit_entry),
+                ("Delete", self._delete_entry),
+            ],
         )
-        self.edit_menu_button.grid(row=0, column=1, padx=2, pady=4)
 
-        self.view_menu_button = ctk.CTkButton(
-            self.menu_frame,
+        self.view_menu_button = self._create_menu_button(
             text="View",
-            width=70,
-            height=28,
-            fg_color="transparent",
-            hover_color=("gray80", "gray25"),
-            text_color=("gray10", "gray90"),
-            command=lambda: self._show_dropdown_menu(
-                self.view_menu_button,
-                [
-                    ("Logs", self._open_logs),
-                    ("Settings", self._open_settings),
-                ],
-            ),
+            column=2,
+            items=[
+                ("Logs", self._open_logs),
+                ("Settings", self._open_settings),
+            ],
         )
-        self.view_menu_button.grid(row=0, column=2, padx=2, pady=4)
 
-        self.help_menu_button = ctk.CTkButton(
-            self.menu_frame,
+        self.help_menu_button = self._create_menu_button(
             text="Help",
+            column=3,
+            items=[
+                ("About", self._on_about),
+            ],
+        )
+
+    def _create_menu_button(self, text: str, column: int, items: list, padx=2):
+        button = ctk.CTkButton(
+            self.menu_frame,
+            text=text,
             width=70,
             height=28,
             fg_color="transparent",
             hover_color=("gray80", "gray25"),
             text_color=("gray10", "gray90"),
-            command=lambda: self._show_dropdown_menu(
-                self.help_menu_button,
-                [
-                    ("About", self._on_about),
-                ],
-            ),
+            command=lambda: self._show_custom_dropdown(button, items)
         )
-        self.help_menu_button.grid(row=0, column=3, padx=2, pady=4)
+        button.grid(row=0, column=column, padx=padx, pady=4)
+        return button
 
-    def _show_dropdown_menu(self, widget, items) -> None:
-        menu = tk.Menu(
-            self,
-            tearoff=0,
-            font=("Segoe UI", 11),
-            activeborderwidth=0,
+    def _show_custom_dropdown(self, widget, items) -> None:
+        if self.dropdown_window is not None:
+            try:
+                self.dropdown_window.destroy()
+            except tk.TclError:
+                pass
+            self.dropdown_window = None
+
+        self.dropdown_window = ctk.CTkToplevel(self)
+        self.dropdown_window.overrideredirect(True)
+        self.dropdown_window.attributes("-topmost", True)
+
+        frame = ctk.CTkFrame(
+            self.dropdown_window,
+            corner_radius=10,
+            border_width=1
         )
+        frame.pack(fill="both", expand=True, padx=2, pady=2)
+
+        row = 0
 
         for label, command in items:
             if label == "separator":
-                menu.add_separator()
-            else:
-                menu.add_command(label=label, command=command)
+                separator = ctk.CTkFrame(
+                    frame,
+                    height=1,
+                    fg_color=("gray70", "gray35")
+                )
+                separator.grid(row=row, column=0, sticky="ew", padx=8, pady=4)
+                row += 1
+                continue
+
+            item_button = ctk.CTkButton(
+                frame,
+                text=label,
+                width=150,
+                height=34,
+                anchor="w",
+                fg_color="transparent",
+                hover_color=("gray80", "gray25"),
+                text_color=("gray10", "gray90"),
+                command=lambda cmd=command: self._run_dropdown_command(cmd)
+            )
+            item_button.grid(row=row, column=0, sticky="ew", padx=6, pady=3)
+            row += 1
 
         x = widget.winfo_rootx()
-        y = widget.winfo_rooty() + widget.winfo_height()
+        y = widget.winfo_rooty() + widget.winfo_height() + 2
 
-        menu.tk_popup(x, y)
+        self.dropdown_window.geometry(f"+{x}+{y}")
+        self.dropdown_window.focus_force()
 
-    def _show_popup(self, title: str, text: str) -> None:
-        popup = ctk.CTkToplevel(self)
-        popup.title(title)
-        popup.geometry("480x240")
-        popup.resizable(False, False)
+        self.dropdown_window.bind("<FocusOut>", lambda event: self._close_dropdown())
+        self.dropdown_window.bind("<Escape>", lambda event: self._close_dropdown())
 
-        popup.transient(self)
-        popup.grab_set()
+    def _run_dropdown_command(self, command) -> None:
+        self._close_dropdown()
 
-        popup.grid_columnconfigure(0, weight=1)
-        popup.grid_rowconfigure(0, weight=1)
+        if command is not None:
+            command()
 
-        label = ctk.CTkLabel(
-            popup,
-            text=text,
-            font=ctk.CTkFont(size=16),
-            wraplength=420,
-            justify="center"
-        )
-        label.grid(row=0, column=0, padx=30, pady=(35, 20), sticky="nsew")
+    def _close_dropdown(self) -> None:
+        if self.dropdown_window is not None:
+            try:
+                self.dropdown_window.destroy()
+            except tk.TclError:
+                pass
 
-        ok_button = ctk.CTkButton(
-            popup,
-            text="OK",
-            width=140,
-            height=38,
-            command=popup.destroy
-        )
-        ok_button.grid(row=1, column=0, pady=(0, 25))
+            self.dropdown_window = None
 
-        popup.update_idletasks()
-
-        x = self.winfo_x() + (self.winfo_width() // 2) - (480 // 2)
-        y = self.winfo_y() + (self.winfo_height() // 2) - (240 // 2)
-
-        popup.geometry(f"480x240+{x}+{y}")
-
-        popup.focus_force()
+    #  Menu actions
 
     def _on_new(self) -> None:
-        self._show_popup(
+        self._show_info(
             "New",
-            "Создание новой базы будет реализовано в следующих спринтах."
+            "Creating a new vault will be implemented in the next sprints."
         )
 
     def _on_open(self) -> None:
-        self._show_popup(
+        self._show_info(
             "Open",
-            "Открытие базы будет реализовано в следующих спринтах."
+            "Opening an existing vault will be implemented in the next sprints."
         )
 
     def _on_backup(self) -> None:
-        self._show_popup(
+        self._show_info(
             "Backup",
-            "Механизм резервного копирования будет реализован в Sprint 8."
+            "Backup functionality will be implemented in Sprint 8."
         )
 
     def _on_about(self) -> None:
-        self._show_popup(
+        self._show_info(
             "About",
             "CryptoSafe Manager\nSprint 1 GUI shell"
         )
 
+    # Main layout
+
     def _create_header(self):
         self.header = ctk.CTkFrame(self, corner_radius=0)
-        self.header.grid(row=0, column=0, sticky="ew")
+        self.header.grid(row=1, column=0, sticky="ew")
         self.header.grid_columnconfigure(1, weight=1)
 
         self.title_label = ctk.CTkLabel(
@@ -317,6 +351,8 @@ class MainWindow(ctk.CTk):
             font=ctk.CTkFont(size=13)
         )
         self.status.pack(fill="x", padx=14, pady=8)
+
+    # Auth flow
 
     def _start_auth_flow(self):
         default_db_path = ConfigManager().load().db_path
@@ -424,11 +460,11 @@ class MainWindow(ctk.CTk):
                     details=f"Failed login attempt #{attempts}"
                 )
 
-            messagebox.showerror(
-                "Ошибка входа",
-                f"Неверный мастер-пароль.\n"
-                f"Попытка: {attempts}\n"
-                f"Следующая попытка будет доступна через {delay} сек."
+            self._show_error(
+                "Login error",
+                f"Invalid master password.\n"
+                f"Attempt: {attempts}\n"
+                f"Next attempt will be available in {delay} sec."
             )
 
             self.auth_service.apply_backoff_delay()
@@ -491,11 +527,13 @@ class MainWindow(ctk.CTk):
         except (TypeError, ValueError):
             return 300
 
+    # Logs and settings
+
     def _open_logs(self):
         if self.audit_repo is None:
-            messagebox.showwarning(
+            self._show_warning(
                 "Logs",
-                "Журнал аудита пока недоступен. Сначала выполните вход."
+                "Audit log is not available yet. Please unlock the vault first."
             )
             return
 
@@ -503,9 +541,9 @@ class MainWindow(ctk.CTk):
 
     def _open_settings(self):
         if self.db is None or self.repo is None:
-            messagebox.showwarning(
+            self._show_warning(
                 "Settings",
-                "Настройки пока недоступны. Сначала выполните вход."
+                "Settings are not available yet. Please unlock the vault first."
             )
             return
 
@@ -515,11 +553,13 @@ class MainWindow(ctk.CTk):
         if dialog.result == "change_master_password":
             self._change_master_password()
 
+    # Entries
+
     def _add_entry(self):
         if self.repo is None or self.master_password is None:
-            messagebox.showwarning(
-                "Добавление записи",
-                "Сначала выполните вход в хранилище."
+            self._show_warning(
+                "Add entry",
+                "Please unlock the vault first."
             )
             return
 
@@ -549,29 +589,34 @@ class MainWindow(ctk.CTk):
             details=f"Added entry: {r.title}"
         )
 
+        self._show_info(
+            "Add entry",
+            "Entry added successfully."
+        )
+
     def _edit_entry(self):
         if self.repo is None or self.master_password is None:
-            messagebox.showwarning(
-                "Редактирование записи",
-                "Сначала выполните вход в хранилище."
+            self._show_warning(
+                "Edit entry",
+                "Please unlock the vault first."
             )
             return
 
         entry_id = self.table.get_selected_entry_id()
 
         if entry_id is None:
-            messagebox.showwarning(
-                "Редактирование записи",
-                "Сначала выберите запись в таблице."
+            self._show_warning(
+                "Edit entry",
+                "Please select an entry in the table first."
             )
             return
 
         entry = self.repo.get_entry_by_id(entry_id)
 
         if entry is None:
-            messagebox.showerror(
-                "Ошибка редактирования",
-                "Запись не найдена."
+            self._show_error(
+                "Edit entry",
+                "Entry not found."
             )
             return
 
@@ -584,9 +629,9 @@ class MainWindow(ctk.CTk):
         r = dialog.result
 
         if not r["password"]:
-            messagebox.showwarning(
-                "Редактирование записи",
-                "Введите новый пароль для записи."
+            self._show_warning(
+                "Edit entry",
+                "Please enter a new password for this entry."
             )
             return
 
@@ -602,9 +647,9 @@ class MainWindow(ctk.CTk):
         )
 
         if not updated:
-            messagebox.showerror(
-                "Ошибка редактирования",
-                "Не удалось обновить запись."
+            self._show_error(
+                "Edit entry",
+                "Failed to update the entry."
             )
             return
 
@@ -617,31 +662,31 @@ class MainWindow(ctk.CTk):
             details=f"Edited entry id={entry_id}"
         )
 
-        messagebox.showinfo(
-            "Редактирование записи",
-            "Запись успешно обновлена."
+        self._show_info(
+            "Edit entry",
+            "Entry updated successfully."
         )
 
     def _delete_entry(self):
         if self.repo is None:
-            messagebox.showwarning(
-                "Удаление записи",
-                "Сначала выполните вход в хранилище."
+            self._show_warning(
+                "Delete entry",
+                "Please unlock the vault first."
             )
             return
 
         entry_id = self.table.get_selected_entry_id()
 
         if entry_id is None:
-            messagebox.showwarning(
-                "Удаление записи",
-                "Сначала выберите запись в таблице."
+            self._show_warning(
+                "Delete entry",
+                "Please select an entry in the table first."
             )
             return
 
-        confirm = messagebox.askyesno(
-            "Удаление записи",
-            f"Удалить запись с ID {entry_id}?"
+        confirm = self._ask_yes_no(
+            "Delete entry",
+            f"Delete entry with ID {entry_id}?"
         )
 
         if not confirm:
@@ -650,9 +695,9 @@ class MainWindow(ctk.CTk):
         deleted = self.repo.delete_entry(entry_id)
 
         if not deleted:
-            messagebox.showerror(
-                "Ошибка удаления",
-                "Запись не найдена или уже была удалена."
+            self._show_error(
+                "Delete entry",
+                "Entry was not found or has already been deleted."
             )
             return
 
@@ -665,16 +710,18 @@ class MainWindow(ctk.CTk):
             details=f"Deleted entry id={entry_id}"
         )
 
-        messagebox.showinfo(
-            "Удаление записи",
-            "Запись успешно удалена."
+        self._show_info(
+            "Delete entry",
+            "Entry deleted successfully."
         )
+
+    # Password and session
 
     def _change_master_password(self):
         if self.repo is None:
-            messagebox.showwarning(
+            self._show_warning(
                 "Change password",
-                "Сначала выполните вход в хранилище."
+                "Please unlock the vault first."
             )
             return
 
@@ -694,7 +741,7 @@ class MainWindow(ctk.CTk):
             )
 
         except ValueError:
-            messagebox.showerror(
+            self._show_error(
                 "Change password",
                 "Current master password is incorrect."
             )
@@ -707,7 +754,7 @@ class MainWindow(ctk.CTk):
             details="Master password changed and vault re-encrypted"
         )
 
-        messagebox.showinfo(
+        self._show_info(
             "Change password",
             "Master password changed successfully."
         )
@@ -769,6 +816,7 @@ class MainWindow(ctk.CTk):
                 details="Application closed"
             )
 
+        self._close_dropdown()
         self._clear_sensitive_data()
         self.state_manager.stop_timers()
 
@@ -779,6 +827,7 @@ class MainWindow(ctk.CTk):
             self.audit_repo = None
 
         self.destroy()
+
 
 def run():
     app = MainWindow()
