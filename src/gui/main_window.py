@@ -33,6 +33,9 @@ class MainWindow(ctk.CTk):
         self.master_password = None
         self.dropdown_window = None
 
+        self.lock_overlay = None
+        self.auth_dialog_open = False
+
         self.state_manager = StateManager(on_auto_lock=self._handle_auto_lock)
         self.auth_service = AuthenticationService()
         self.event_bus = EventBus()
@@ -134,7 +137,13 @@ class MainWindow(ctk.CTk):
     def _on_about(self) -> None:
         self._show_info(
             "About",
-            "CryptoSafe Manager\nSprint 1 GUI shell"
+            "CryptoSafe Manager\n\n"
+            "Local password manager with encrypted storage.\n\n"
+            "Version: Sprint 1–2 prototype\n"
+            "Storage: SQLite local vault\n"
+            "Security: master password authentication, key derivation, audit logging\n"
+            "UI: CustomTkinter\n\n"
+            "Developed for Applied Cryptography course."
         )
 
     # Main layout
@@ -159,6 +168,74 @@ class MainWindow(ctk.CTk):
 
         self.table = SecureTable(self.table_frame)
         self.table.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+
+        self._create_lock_overlay()
+        self._show_lock_overlay()
+
+    def _create_lock_overlay(self):
+        self.lock_overlay = ctk.CTkFrame(
+            self.table_frame,
+            corner_radius=18,
+            fg_color=("#ececec", "#1f1f1f")
+        )
+
+        self.lock_overlay.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.lock_overlay.grid_columnconfigure(0, weight=1)
+        self.lock_overlay.grid_rowconfigure(0, weight=1)
+        self.lock_overlay.grid_rowconfigure(4, weight=1)
+
+        icon_label = ctk.CTkLabel(
+            self.lock_overlay,
+            text="🔒",
+            font=ctk.CTkFont(size=54)
+        )
+        icon_label.grid(row=1, column=0, pady=(0, 10))
+
+        title_label = ctk.CTkLabel(
+            self.lock_overlay,
+            text="Vault is locked",
+            font=ctk.CTkFont(size=28, weight="bold")
+        )
+        title_label.grid(row=2, column=0, pady=(0, 8))
+
+        message_label = ctk.CTkLabel(
+            self.lock_overlay,
+            text="Please log in to view your saved entries.",
+            font=ctk.CTkFont(size=15),
+            text_color=("gray35", "gray70")
+        )
+        message_label.grid(row=3, column=0, pady=(0, 18))
+
+        login_button = ctk.CTkButton(
+            self.lock_overlay,
+            text="Unlock vault",
+            width=160,
+            height=38,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+            text_color="white",
+            command=self._unlock_from_overlay
+        )
+        login_button.grid(row=4, column=0, pady=(0, 30), sticky="n")
+
+    def _show_lock_overlay(self):
+        if self.lock_overlay is not None:
+            self.lock_overlay.lift()
+
+    def _hide_lock_overlay(self):
+        if self.lock_overlay is not None:
+            self.lock_overlay.lower()
+
+    def _unlock_from_overlay(self):
+        if self.auth_dialog_open:
+            return
+
+        if self.db is not None:
+            db_path = self.db.path
+        else:
+            db_path = ConfigManager().load().db_path
+
+        self._show_login_dialog(db_path)
 
     def _create_status_bar(self):
         self.status_frame = ctk.CTkFrame(self, corner_radius=14)
@@ -236,6 +313,7 @@ class MainWindow(ctk.CTk):
 
         rows = self.repo.get_entries_for_table()
         self.table.set_rows(rows)
+        self._hide_lock_overlay()
 
         self.state_manager.login("local_user")
         self.state_manager.start_inactivity_timer(self._get_auto_lock_timeout())
@@ -251,11 +329,19 @@ class MainWindow(ctk.CTk):
         )
 
     def _show_login_dialog(self, db_path):
+        if self.auth_dialog_open:
+            return
+
+        self.auth_dialog_open = True
+
         login = LoginDialog(self)
         self.wait_window(login)
 
+        self.auth_dialog_open = False
+
         if login.result is None:
-            self.destroy()
+            self._show_lock_overlay()
+            self.status.configure(text="Status: Locked | Login cancelled")
             return
 
         self.db = Database(db_path)
@@ -294,7 +380,8 @@ class MainWindow(ctk.CTk):
             self.repo = None
             self.audit_repo = None
 
-            self._show_login_dialog(db_path)
+            self._show_lock_overlay()
+            self.after(100, lambda: self._show_login_dialog(db_path))
             return
 
         self.auth_service.login("local_user")
@@ -316,6 +403,7 @@ class MainWindow(ctk.CTk):
 
         rows = self.repo.get_entries_for_table()
         self.table.set_rows(rows)
+        self._hide_lock_overlay()
 
         self.state_manager.login("local_user")
         self.state_manager.start_inactivity_timer(self._get_auto_lock_timeout())
@@ -603,6 +691,7 @@ class MainWindow(ctk.CTk):
         self.auth_service.logout()
         self.state_manager.logout()
         self.table.set_rows([])
+        self._show_lock_overlay()
         self.status.configure(text="Status: Locked | Logged out")
 
         if self.db is not None:
