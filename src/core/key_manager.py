@@ -51,6 +51,10 @@ class KeyManager:
             ensure_ascii=False,
         )
 
+    def is_master_password_set(self) -> bool:
+        record = self.key_store.get_key("master_password")
+        return record is not None
+
     # Password hashing / verification
 
     def create_auth_hash(self, password: str) -> AuthHashResult:

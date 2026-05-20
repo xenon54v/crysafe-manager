@@ -1,4 +1,5 @@
 ﻿import customtkinter as ctk
+import tkinter as tk
 
 from tkinter import messagebox
 from src.core.config import ConfigManager
@@ -30,23 +31,189 @@ class MainWindow(ctk.CTk):
         self.repo = None
         self.audit_repo = None
         self.master_password = None
-        self.state_manager = StateManager(on_auto_lock=self._handle_auto_lock)
 
+        self.state_manager = StateManager(on_auto_lock=self._handle_auto_lock)
         self.auth_service = AuthenticationService()
         self.event_bus = EventBus()
 
         self.title("CryptoSafe Manager")
         self.geometry("1100x700")
 
-        self.grid_rowconfigure(1, weight=1)
+        # Обязательное меню по требованиям Sprint 1
+        self._create_custom_menu_bar()
+
+        self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
+        self._create_custom_menu_bar()
         self._create_header()
         self._create_table()
         self._create_status_bar()
 
         self.after(100, self._start_auth_flow)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _create_custom_menu_bar(self) -> None:
+        self.menu_frame = ctk.CTkFrame(self, height=36, corner_radius=0)
+        self.menu_frame.grid(row=0, column=0, sticky="ew")
+        self.menu_frame.grid_columnconfigure(10, weight=1)
+
+        self.file_menu_button = ctk.CTkButton(
+            self.menu_frame,
+            text="File",
+            width=70,
+            height=28,
+            fg_color="transparent",
+            hover_color=("gray80", "gray25"),
+            text_color=("gray10", "gray90"),
+            command=lambda: self._show_dropdown_menu(
+                self.file_menu_button,
+                [
+                    ("New", self._on_new),
+                    ("Open", self._on_open),
+                    ("Backup", self._on_backup),
+                    ("separator", None),
+                    ("Exit", self._on_close),
+                ],
+            ),
+        )
+        self.file_menu_button.grid(row=0, column=0, padx=(8, 2), pady=4)
+
+        self.edit_menu_button = ctk.CTkButton(
+            self.menu_frame,
+            text="Edit",
+            width=70,
+            height=28,
+            fg_color="transparent",
+            hover_color=("gray80", "gray25"),
+            text_color=("gray10", "gray90"),
+            command=lambda: self._show_dropdown_menu(
+                self.edit_menu_button,
+                [
+                    ("Add", self._add_entry),
+                    ("Edit", self._edit_entry),
+                    ("Delete", self._delete_entry),
+                ],
+            ),
+        )
+        self.edit_menu_button.grid(row=0, column=1, padx=2, pady=4)
+
+        self.view_menu_button = ctk.CTkButton(
+            self.menu_frame,
+            text="View",
+            width=70,
+            height=28,
+            fg_color="transparent",
+            hover_color=("gray80", "gray25"),
+            text_color=("gray10", "gray90"),
+            command=lambda: self._show_dropdown_menu(
+                self.view_menu_button,
+                [
+                    ("Logs", self._open_logs),
+                    ("Settings", self._open_settings),
+                ],
+            ),
+        )
+        self.view_menu_button.grid(row=0, column=2, padx=2, pady=4)
+
+        self.help_menu_button = ctk.CTkButton(
+            self.menu_frame,
+            text="Help",
+            width=70,
+            height=28,
+            fg_color="transparent",
+            hover_color=("gray80", "gray25"),
+            text_color=("gray10", "gray90"),
+            command=lambda: self._show_dropdown_menu(
+                self.help_menu_button,
+                [
+                    ("About", self._on_about),
+                ],
+            ),
+        )
+        self.help_menu_button.grid(row=0, column=3, padx=2, pady=4)
+
+    def _show_dropdown_menu(self, widget, items) -> None:
+        menu = tk.Menu(
+            self,
+            tearoff=0,
+            font=("Segoe UI", 11),
+            activeborderwidth=0,
+        )
+
+        for label, command in items:
+            if label == "separator":
+                menu.add_separator()
+            else:
+                menu.add_command(label=label, command=command)
+
+        x = widget.winfo_rootx()
+        y = widget.winfo_rooty() + widget.winfo_height()
+
+        menu.tk_popup(x, y)
+
+    def _show_popup(self, title: str, text: str) -> None:
+        popup = ctk.CTkToplevel(self)
+        popup.title(title)
+        popup.geometry("480x240")
+        popup.resizable(False, False)
+
+        popup.transient(self)
+        popup.grab_set()
+
+        popup.grid_columnconfigure(0, weight=1)
+        popup.grid_rowconfigure(0, weight=1)
+
+        label = ctk.CTkLabel(
+            popup,
+            text=text,
+            font=ctk.CTkFont(size=16),
+            wraplength=420,
+            justify="center"
+        )
+        label.grid(row=0, column=0, padx=30, pady=(35, 20), sticky="nsew")
+
+        ok_button = ctk.CTkButton(
+            popup,
+            text="OK",
+            width=140,
+            height=38,
+            command=popup.destroy
+        )
+        ok_button.grid(row=1, column=0, pady=(0, 25))
+
+        popup.update_idletasks()
+
+        x = self.winfo_x() + (self.winfo_width() // 2) - (480 // 2)
+        y = self.winfo_y() + (self.winfo_height() // 2) - (240 // 2)
+
+        popup.geometry(f"480x240+{x}+{y}")
+
+        popup.focus_force()
+
+    def _on_new(self) -> None:
+        self._show_popup(
+            "New",
+            "Создание новой базы будет реализовано в следующих спринтах."
+        )
+
+    def _on_open(self) -> None:
+        self._show_popup(
+            "Open",
+            "Открытие базы будет реализовано в следующих спринтах."
+        )
+
+    def _on_backup(self) -> None:
+        self._show_popup(
+            "Backup",
+            "Механизм резервного копирования будет реализован в Sprint 8."
+        )
+
+    def _on_about(self) -> None:
+        self._show_popup(
+            "About",
+            "CryptoSafe Manager\nSprint 1 GUI shell"
+        )
 
     def _create_header(self):
         self.header = ctk.CTkFrame(self, corner_radius=0)
@@ -80,6 +247,7 @@ class MainWindow(ctk.CTk):
             hover_color=PINK_HOVER,
             text_color="white"
         )
+        self.settings_button.grid(row=0, column=3, padx=10, pady=15)
 
         self.logout_button = ctk.CTkButton(
             self.header,
@@ -92,11 +260,9 @@ class MainWindow(ctk.CTk):
         )
         self.logout_button.grid(row=0, column=4, padx=(0, 20), pady=15)
 
-        self.settings_button.grid(row=0, column=3, padx=10, pady=15)
-
     def _create_table(self):
         self.table_frame = ctk.CTkFrame(self, corner_radius=18)
-        self.table_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=20)
+        self.table_frame.grid(row=2, column=0, sticky="nsew", padx=20, pady=20)
         self.table_frame.grid_rowconfigure(0, weight=1)
         self.table_frame.grid_columnconfigure(0, weight=1)
 
@@ -142,7 +308,7 @@ class MainWindow(ctk.CTk):
 
     def _create_status_bar(self):
         self.status_frame = ctk.CTkFrame(self, corner_radius=14)
-        self.status_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 15))
+        self.status_frame.grid(row=3, column=0, sticky="ew", padx=20, pady=(0, 15))
 
         self.status = ctk.CTkLabel(
             self.status_frame,
@@ -155,9 +321,42 @@ class MainWindow(ctk.CTk):
     def _start_auth_flow(self):
         default_db_path = ConfigManager().load().db_path
 
-        if default_db_path.exists():
+        print("DB PATH:", default_db_path)
+        print("DB EXISTS:", default_db_path.exists())
+
+        if not default_db_path.exists():
+            print("FIRST RUN: database file not found")
+            self._show_setup_wizard()
+            return
+
+        try:
+            db = Database(default_db_path)
+            db.connect()
+
+            cursor = db.execute(
+                """
+                SELECT COUNT(*)
+                FROM key_store
+                WHERE key_type = ?;
+                """,
+                ("master",)
+            )
+
+            count = cursor.fetchone()[0]
+            db.close()
+
+            print("MASTER COUNT:", count)
+
+        except Exception as e:
+            print("FIRST RUN: key_store check failed:", e)
+            self._show_setup_wizard()
+            return
+
+        if count > 0:
+            print("LOGIN: master key exists")
             self._show_login_dialog(default_db_path)
         else:
+            print("FIRST RUN: master key not found")
             self._show_setup_wizard()
 
     def _show_setup_wizard(self):
@@ -183,7 +382,6 @@ class MainWindow(ctk.CTk):
         self.table.set_rows(rows)
 
         self.state_manager.login("local_user")
-
         self.state_manager.start_inactivity_timer(self._get_auto_lock_timeout())
         self.auth_service.login("local_user")
 
@@ -238,17 +436,9 @@ class MainWindow(ctk.CTk):
             self.db.close()
             self.db = None
             self.repo = None
+            self.audit_repo = None
 
             self._show_login_dialog(db_path)
-
-            self.event_bus.publish(
-                UserLoggedIn(
-                    name="UserLoggedIn",
-                    timestamp=now_utc(),
-                    user="local_user"
-                )
-            )
-
             return
 
         self.auth_service.login("local_user")
@@ -302,24 +492,37 @@ class MainWindow(ctk.CTk):
             return 300
 
     def _open_logs(self):
+        if self.audit_repo is None:
+            messagebox.showwarning(
+                "Logs",
+                "Журнал аудита пока недоступен. Сначала выполните вход."
+            )
+            return
+
         AuditLogViewer(self, self.audit_repo)
 
-    def _on_close(self):
-        if self.audit_repo is not None:
-            self.audit_repo.add_log(
-                action="app_close",
-                details="Application closed"
+    def _open_settings(self):
+        if self.db is None or self.repo is None:
+            messagebox.showwarning(
+                "Settings",
+                "Настройки пока недоступны. Сначала выполните вход."
             )
+            return
 
-        self._clear_sensitive_data()
-        self.state_manager.stop_timers()
+        dialog = SettingsDialog(self)
+        self.wait_window(dialog)
 
-        if self.db is not None:
-            self.db.close()
-
-        self.destroy()
+        if dialog.result == "change_master_password":
+            self._change_master_password()
 
     def _add_entry(self):
+        if self.repo is None or self.master_password is None:
+            messagebox.showwarning(
+                "Добавление записи",
+                "Сначала выполните вход в хранилище."
+            )
+            return
+
         dialog = AddEntryDialog(self)
         self.wait_window(dialog)
 
@@ -346,97 +549,14 @@ class MainWindow(ctk.CTk):
             details=f"Added entry: {r.title}"
         )
 
-    def _clear_sensitive_data(self):
-        self.master_password = None
-
-        if self.repo is not None:
-            self.repo.key_manager.lock()
-
-    def _handle_auto_lock(self):
-        if self.audit_repo is not None:
-            self.audit_repo.add_log(
-                action="auto_lock",
-                details="Session locked due to inactivity"
-            )
-
-        self.after(0, self._logout)
-
-    def _open_settings(self):
-        dialog = SettingsDialog(self)
-        self.wait_window(dialog)
-
-        if dialog.result == "change_master_password":
-            self._change_master_password()
-
-    def _logout(self):
-        if self.audit_repo is not None:
-            self.audit_repo.add_log(
-                action="logout",
-                details="User logged out"
-            )
-
-        self.event_bus.publish(
-            UserLoggedOut(
-                name="UserLoggedOut",
-                timestamp=now_utc(),
-                user="local_user"
-            )
-        )
-
-        db_path = None
-        if self.db is not None:
-            db_path = self.db.path
-
-        self._clear_sensitive_data()
-        self.auth_service.logout()
-        self.state_manager.logout()
-        self.table.set_rows([])
-        self.status.configure(text="Status: Locked | Logged out")
-
-        if self.db is not None:
-            self.db.close()
-            self.db = None
-            self.repo = None
-
-        if db_path is not None:
-            self.after(100, lambda: self._show_login_dialog(db_path))
-
-    def _change_master_password(self):
-        dialog = ChangePasswordDialog(self)
-        self.wait_window(dialog)
-
-        if dialog.result is None:
-            return
-
-        old_password = dialog.result["old_password"]
-        new_password = dialog.result["new_password"]
-
-        try:
-            self.repo.change_master_password(
-                old_password=old_password,
-                new_password=new_password,
-            )
-
-        except ValueError:
-            messagebox.showerror(
-                "Change password",
-                "Current master password is incorrect."
-            )
-            return
-
-        self.master_password = new_password
-
-        self.audit_repo.add_log(
-            action="change_master_password",
-            details="Master password changed and vault re-encrypted"
-        )
-
-        messagebox.showinfo(
-            "Change password",
-            "Master password changed successfully."
-        )
-
     def _edit_entry(self):
+        if self.repo is None or self.master_password is None:
+            messagebox.showwarning(
+                "Редактирование записи",
+                "Сначала выполните вход в хранилище."
+            )
+            return
+
         entry_id = self.table.get_selected_entry_id()
 
         if entry_id is None:
@@ -503,6 +623,13 @@ class MainWindow(ctk.CTk):
         )
 
     def _delete_entry(self):
+        if self.repo is None:
+            messagebox.showwarning(
+                "Удаление записи",
+                "Сначала выполните вход в хранилище."
+            )
+            return
+
         entry_id = self.table.get_selected_entry_id()
 
         if entry_id is None:
@@ -543,6 +670,115 @@ class MainWindow(ctk.CTk):
             "Запись успешно удалена."
         )
 
+    def _change_master_password(self):
+        if self.repo is None:
+            messagebox.showwarning(
+                "Change password",
+                "Сначала выполните вход в хранилище."
+            )
+            return
+
+        dialog = ChangePasswordDialog(self)
+        self.wait_window(dialog)
+
+        if dialog.result is None:
+            return
+
+        old_password = dialog.result["old_password"]
+        new_password = dialog.result["new_password"]
+
+        try:
+            self.repo.change_master_password(
+                old_password=old_password,
+                new_password=new_password,
+            )
+
+        except ValueError:
+            messagebox.showerror(
+                "Change password",
+                "Current master password is incorrect."
+            )
+            return
+
+        self.master_password = new_password
+
+        self.audit_repo.add_log(
+            action="change_master_password",
+            details="Master password changed and vault re-encrypted"
+        )
+
+        messagebox.showinfo(
+            "Change password",
+            "Master password changed successfully."
+        )
+
+    def _logout(self):
+        if self.audit_repo is not None:
+            self.audit_repo.add_log(
+                action="logout",
+                details="User logged out"
+            )
+
+        self.event_bus.publish(
+            UserLoggedOut(
+                name="UserLoggedOut",
+                timestamp=now_utc(),
+                user="local_user"
+            )
+        )
+
+        db_path = None
+
+        if self.db is not None:
+            db_path = self.db.path
+
+        self._clear_sensitive_data()
+        self.auth_service.logout()
+        self.state_manager.logout()
+        self.table.set_rows([])
+        self.status.configure(text="Status: Locked | Logged out")
+
+        if self.db is not None:
+            self.db.close()
+            self.db = None
+            self.repo = None
+            self.audit_repo = None
+
+        if db_path is not None:
+            self.after(100, lambda: self._show_login_dialog(db_path))
+
+    def _handle_auto_lock(self):
+        if self.audit_repo is not None:
+            self.audit_repo.add_log(
+                action="auto_lock",
+                details="Session locked due to inactivity"
+            )
+
+        self.after(0, self._logout)
+
+    def _clear_sensitive_data(self):
+        self.master_password = None
+
+        if self.repo is not None:
+            self.repo.key_manager.lock()
+
+    def _on_close(self):
+        if self.audit_repo is not None:
+            self.audit_repo.add_log(
+                action="app_close",
+                details="Application closed"
+            )
+
+        self._clear_sensitive_data()
+        self.state_manager.stop_timers()
+
+        if self.db is not None:
+            self.db.close()
+            self.db = None
+            self.repo = None
+            self.audit_repo = None
+
+        self.destroy()
 
 def run():
     app = MainWindow()
