@@ -16,6 +16,7 @@ from src.gui.edit_entry_dialog import EditEntryDialog
 from src.gui.change_password_dialog import ChangePasswordDialog
 from src.gui.settings_dialog import SettingsDialog
 from src.gui.widgets.app_menu_bar import AppMenuBar
+from src.core.vault.entry_manager import EntryManager, EntryManagerError
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -29,6 +30,7 @@ class MainWindow(ctk.CTk):
 
         self.db = None
         self.repo = None
+        self.entry_manager = None
         self.audit_repo = None
         self.master_password = None
         self.dropdown_window = None
@@ -301,7 +303,12 @@ class MainWindow(ctk.CTk):
 
         self.repo = VaultRepository(self.db)
         self.audit_repo = AuditRepository(self.db)
-        #self.repo.insert_sample_entries(r.master_password)
+
+        self.entry_manager = EntryManager(
+            db=self.db,
+            key_manager=self.repo.key_manager,
+            event_bus=self.event_bus,
+        )
 
         self.table.set_rows([])
 
@@ -342,6 +349,12 @@ class MainWindow(ctk.CTk):
         self.repo = VaultRepository(self.db)
         self.audit_repo = AuditRepository(self.db)
 
+        self.entry_manager = EntryManager(
+            db=self.db,
+            key_manager=self.repo.key_manager,
+            event_bus=self.event_bus,
+        )
+
         try:
             self.repo.key_manager.unlock_with_password(
                 self.db,
@@ -370,6 +383,7 @@ class MainWindow(ctk.CTk):
             self.db.close()
             self.db = None
             self.repo = None
+            self.entry_manager = None
             self.audit_repo = None
 
             self._show_lock_overlay()
