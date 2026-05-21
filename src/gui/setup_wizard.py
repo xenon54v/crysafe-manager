@@ -7,10 +7,8 @@ import customtkinter as ctk
 
 from src.gui.widgets.password_entry import PasswordEntry
 
-
 PINK = "#d98ca3"
 PINK_HOVER = "#c97c93"
-
 
 @dataclass(frozen=True)
 class SetupResult:

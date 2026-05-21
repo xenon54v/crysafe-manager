@@ -254,11 +254,7 @@ class MainWindow(ctk.CTk):
     def _start_auth_flow(self):
         default_db_path = ConfigManager().load().db_path
 
-        print("DB PATH:", default_db_path)
-        print("DB EXISTS:", default_db_path.exists())
-
         if not default_db_path.exists():
-            print("FIRST RUN: database file not found")
             self._show_setup_wizard()
             return
 
@@ -278,18 +274,14 @@ class MainWindow(ctk.CTk):
             count = cursor.fetchone()[0]
             db.close()
 
-            print("MASTER COUNT:", count)
-
         except Exception as e:
             print("FIRST RUN: key_store check failed:", e)
             self._show_setup_wizard()
             return
 
         if count > 0:
-            print("LOGIN: master key exists")
             self._show_login_dialog(default_db_path)
         else:
-            print("FIRST RUN: master key not found")
             self._show_setup_wizard()
 
     def _show_setup_wizard(self):
@@ -738,7 +730,6 @@ class MainWindow(ctk.CTk):
             self.audit_repo = None
 
         self.destroy()
-
 
 def run():
     app = MainWindow()
