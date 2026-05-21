@@ -1,13 +1,14 @@
 from datetime import datetime
 
-from src.core.crypto.placeholder import AES256Placeholder
+from src.core.vault.encryption_service import AESGCMEncryptionService
+from src.core.crypto.placeholder import zero_bytes
 from src.core.key_manager import KeyManager
 from src.core.crypto.placeholder import AES256Placeholder, zero_bytes
 
 class VaultRepository:
     def __init__(self, db):
         self.db = db
-        self.crypto = AES256Placeholder()
+        self.crypto = AESGCMEncryptionService()
         self.key_manager = KeyManager()
 
     def count_entries(self) -> int:
