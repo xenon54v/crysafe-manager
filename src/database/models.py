@@ -12,6 +12,18 @@ CREATE_TABLES_SQL = [
     """,
 
     """
+    CREATE TABLE IF NOT EXISTS deleted_entries (
+        id TEXT PRIMARY KEY,
+        encrypted_data BLOB NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        tags TEXT
+    );
+    """,
+
+    """
     CREATE TABLE IF NOT EXISTS audit_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         action TEXT NOT NULL,
@@ -48,6 +60,10 @@ CREATE_INDEXES_SQL = [
     "CREATE INDEX IF NOT EXISTS idx_vault_entries_created_at ON vault_entries(created_at);",
     "CREATE INDEX IF NOT EXISTS idx_vault_entries_updated_at ON vault_entries(updated_at);",
     "CREATE INDEX IF NOT EXISTS idx_vault_entries_tags ON vault_entries(tags);",
+
+    "CREATE INDEX IF NOT EXISTS idx_deleted_entries_deleted_at ON deleted_entries(deleted_at);",
+    "CREATE INDEX IF NOT EXISTS idx_deleted_entries_expires_at ON deleted_entries(expires_at);",
+    "CREATE INDEX IF NOT EXISTS idx_deleted_entries_tags ON deleted_entries(tags);",
 
     "CREATE INDEX IF NOT EXISTS idx_audit_entry_id ON audit_log(entry_id);",
     "CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(setting_key);",

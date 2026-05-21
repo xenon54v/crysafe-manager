@@ -11,10 +11,8 @@ from src.core.key_manager import KeyManager
 from src.core.vault.encryption_service import AESGCMEncryptionService
 from src.core.vault.password_generator import PasswordGenerator
 
-
 class EntryManagerError(Exception):
     """Ошибка при выполнении операции с записью хранилища."""
-
 
 @dataclass
 class EntryCreated:
@@ -22,20 +20,17 @@ class EntryCreated:
     timestamp: str
     entry_id: str
 
-
 @dataclass
 class EntryUpdated:
     name: str
     timestamp: str
     entry_id: str
 
-
 @dataclass
 class EntryDeleted:
     name: str
     timestamp: str
     entry_id: str
-
 
 class EntryManager:
     """
