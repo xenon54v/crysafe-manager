@@ -1,17 +1,13 @@
-﻿SCHEMA_VERSION = 3
+﻿SCHEMA_VERSION = 4
 
 CREATE_TABLES_SQL = [
     """
     CREATE TABLE IF NOT EXISTS vault_entries (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        username TEXT,
-        encrypted_password BLOB NOT NULL,
-        url TEXT,
-        notes TEXT,
-        tags TEXT,
+        id TEXT PRIMARY KEY,
+        encrypted_data BLOB NOT NULL,
         created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
+        updated_at TEXT NOT NULL,
+        tags TEXT
     );
     """,
 
@@ -20,7 +16,7 @@ CREATE_TABLES_SQL = [
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         action TEXT NOT NULL,
         timestamp TEXT NOT NULL,
-        entry_id INTEGER,
+        entry_id TEXT,
         details TEXT,
         signature BLOB
     );
@@ -49,7 +45,10 @@ CREATE_TABLES_SQL = [
 ]
 
 CREATE_INDEXES_SQL = [
-    "CREATE INDEX IF NOT EXISTS idx_vault_title ON vault_entries(title);",
+    "CREATE INDEX IF NOT EXISTS idx_vault_entries_created_at ON vault_entries(created_at);",
+    "CREATE INDEX IF NOT EXISTS idx_vault_entries_updated_at ON vault_entries(updated_at);",
+    "CREATE INDEX IF NOT EXISTS idx_vault_entries_tags ON vault_entries(tags);",
+
     "CREATE INDEX IF NOT EXISTS idx_audit_entry_id ON audit_log(entry_id);",
     "CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(setting_key);",
     "CREATE INDEX IF NOT EXISTS idx_key_store_type ON key_store(key_type);"

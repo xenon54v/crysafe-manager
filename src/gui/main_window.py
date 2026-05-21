@@ -301,10 +301,10 @@ class MainWindow(ctk.CTk):
 
         self.repo = VaultRepository(self.db)
         self.audit_repo = AuditRepository(self.db)
-        self.repo.insert_sample_entries(r.master_password)
+        #self.repo.insert_sample_entries(r.master_password)
 
-        rows = self.repo.get_entries_for_table()
-        self.table.set_rows(rows)
+        self.table.set_rows([])
+
         self._hide_lock_overlay()
 
         self.state_manager.login("local_user")
@@ -393,8 +393,7 @@ class MainWindow(ctk.CTk):
 
         self.master_password = login.result.master_password
 
-        rows = self.repo.get_entries_for_table()
-        self.table.set_rows(rows)
+        self.table.set_rows([])
         self._hide_lock_overlay()
 
         self.state_manager.login("local_user")
@@ -463,35 +462,9 @@ class MainWindow(ctk.CTk):
             )
             return
 
-        dialog = AddEntryDialog(self)
-        self.wait_window(dialog)
-
-        if dialog.result is None:
-            return
-
-        r = dialog.result
-
-        self.repo.add_entry(
-            master_password=self.master_password,
-            title=r.title,
-            username=r.username,
-            password=r.password,
-            url=r.url,
-            notes=r.notes,
-            tags=r.tags
-        )
-
-        rows = self.repo.get_entries_for_table()
-        self.table.set_rows(rows)
-
-        self.audit_repo.add_log(
-            action="add_entry",
-            details=f"Added entry: {r.title}"
-        )
-
-        self._show_info(
+        self._show_warning(
             "Add entry",
-            "Entry added successfully."
+            "Adding entries is temporarily disabled while Sprint 3 encrypted data model is being integrated."
         )
 
     def _edit_entry(self):
@@ -502,69 +475,9 @@ class MainWindow(ctk.CTk):
             )
             return
 
-        entry_id = self.table.get_selected_entry_id()
-
-        if entry_id is None:
-            self._show_warning(
-                "Edit entry",
-                "Please select an entry in the table first."
-            )
-            return
-
-        entry = self.repo.get_entry_by_id(entry_id)
-
-        if entry is None:
-            self._show_error(
-                "Edit entry",
-                "Entry not found."
-            )
-            return
-
-        dialog = EditEntryDialog(self, entry=entry)
-        self.wait_window(dialog)
-
-        if dialog.result is None:
-            return
-
-        r = dialog.result
-
-        if not r["password"]:
-            self._show_warning(
-                "Edit entry",
-                "Please enter a new password for this entry."
-            )
-            return
-
-        updated = self.repo.update_entry(
-            entry_id=entry_id,
-            master_password=self.master_password,
-            title=r["title"],
-            username=r["username"],
-            password=r["password"],
-            url=r["url"],
-            notes=r["notes"],
-            tags=r["tags"],
-        )
-
-        if not updated:
-            self._show_error(
-                "Edit entry",
-                "Failed to update the entry."
-            )
-            return
-
-        rows = self.repo.get_entries_for_table()
-        self.table.set_rows(rows)
-
-        self.audit_repo.add_log(
-            action="edit_entry",
-            entry_id=entry_id,
-            details=f"Edited entry id={entry_id}"
-        )
-
-        self._show_info(
+        self._show_warning(
             "Edit entry",
-            "Entry updated successfully."
+            "Editing entries is temporarily disabled while Sprint 3 encrypted data model is being integrated."
         )
 
     def _delete_entry(self):
@@ -575,44 +488,9 @@ class MainWindow(ctk.CTk):
             )
             return
 
-        entry_id = self.table.get_selected_entry_id()
-
-        if entry_id is None:
-            self._show_warning(
-                "Delete entry",
-                "Please select an entry in the table first."
-            )
-            return
-
-        confirm = self._ask_yes_no(
+        self._show_warning(
             "Delete entry",
-            f"Delete entry with ID {entry_id}?"
-        )
-
-        if not confirm:
-            return
-
-        deleted = self.repo.delete_entry(entry_id)
-
-        if not deleted:
-            self._show_error(
-                "Delete entry",
-                "Entry was not found or has already been deleted."
-            )
-            return
-
-        rows = self.repo.get_entries_for_table()
-        self.table.set_rows(rows)
-
-        self.audit_repo.add_log(
-            action="delete_entry",
-            entry_id=entry_id,
-            details=f"Deleted entry id={entry_id}"
-        )
-
-        self._show_info(
-            "Delete entry",
-            "Entry deleted successfully."
+            "Deleting entries is temporarily disabled while Sprint 3 encrypted data model is being integrated."
         )
 
     # Password and session
