@@ -260,6 +260,8 @@ class MainWindow(ctk.CTk):
             self._show_setup_wizard()
             return
 
+        db = None
+
         try:
             db = Database(default_db_path)
             db.connect()
@@ -270,16 +272,22 @@ class MainWindow(ctk.CTk):
                 FROM key_store
                 WHERE key_type = ?;
                 """,
-                ("master",)
+                ("master",),
             )
 
             count = cursor.fetchone()[0]
-            db.close()
 
         except Exception as e:
-            print("FIRST RUN: key_store check failed:", e)
+            print("AUTH FLOW: key_store check failed:", e)
             self._show_setup_wizard()
             return
+
+        finally:
+            if db is not None:
+                try:
+                    db.close()
+                except Exception:
+                    pass
 
         if count > 0:
             self._show_login_dialog(default_db_path)
@@ -304,6 +312,11 @@ class MainWindow(ctk.CTk):
         self.repo = VaultRepository(self.db)
         self.audit_repo = AuditRepository(self.db)
 
+        self.repo.key_manager.unlock_with_password(
+            self.db,
+            self.master_password
+        )
+
         self.entry_manager = EntryManager(
             db=self.db,
             key_manager=self.repo.key_manager,
@@ -326,6 +339,8 @@ class MainWindow(ctk.CTk):
         self.status.configure(
             text=f"Status: Unlocked | DB: {r.db_path} | ENC: {r.enc_scheme}"
         )
+
+
 
     def _show_login_dialog(self, db_path):
         if self.auth_dialog_open:
