@@ -1,4 +1,5 @@
 ﻿import customtkinter as ctk
+from tkinter import messagebox
 
 from src.core.config import ConfigManager
 from src.gui.widgets.secure_table import SecureTable
@@ -304,6 +305,11 @@ class MainWindow(ctk.CTk):
         self.repo = VaultRepository(self.db)
         self.audit_repo = AuditRepository(self.db)
 
+        self.repo.key_manager.unlock_with_password(
+            self.db,
+            self.master_password
+        )
+
         self.entry_manager = EntryManager(
             db=self.db,
             key_manager=self.repo.key_manager,
@@ -349,12 +355,6 @@ class MainWindow(ctk.CTk):
         self.repo = VaultRepository(self.db)
         self.audit_repo = AuditRepository(self.db)
 
-        self.entry_manager = EntryManager(
-            db=self.db,
-            key_manager=self.repo.key_manager,
-            event_bus=self.event_bus,
-        )
-
         try:
             self.repo.key_manager.unlock_with_password(
                 self.db,
@@ -389,6 +389,12 @@ class MainWindow(ctk.CTk):
             self._show_lock_overlay()
             self.after(100, lambda: self._show_login_dialog(db_path))
             return
+
+        self.entry_manager = EntryManager(
+            db=self.db,
+            key_manager=self.repo.key_manager,
+            event_bus=self.event_bus,
+        )
 
         self.auth_service.login("local_user")
 
@@ -469,17 +475,50 @@ class MainWindow(ctk.CTk):
     # Entries
 
     def _add_entry(self):
-        if self.repo is None or self.master_password is None:
+        if self.entry_manager is None or self.master_password is None:
             self._show_warning(
                 "Add entry",
                 "Please unlock the vault first."
             )
             return
 
-        self._show_warning(
-            "Add entry",
-            "Adding entries is temporarily disabled while Sprint 3 encrypted data model is being integrated."
-        )
+        dialog = AddEntryDialog(self)
+        self.wait_window(dialog)
+
+        if dialog.result is None:
+            return
+
+        try:
+            result = dialog.result
+
+            entry_data = {
+                "title": result.title,
+                "username": result.username,
+                "password": result.password,
+                "url": result.url,
+                "notes": result.notes,
+                "tags": result.tags,
+            }
+
+            self.entry_manager.create_entry(entry_data)
+
+            self._load_entries()
+
+            self.status.configure(
+                text="Status: Unlocked | Entry added"
+            )
+
+        except EntryManagerError as error:
+            self._show_error(
+                "Add entry error",
+                str(error)
+            )
+
+        except RuntimeError as error:
+            self._show_error(
+                "Key error",
+                str(error)
+            )
 
     def _edit_entry(self):
         if self.repo is None or self.master_password is None:
@@ -495,17 +534,52 @@ class MainWindow(ctk.CTk):
         )
 
     def _delete_entry(self):
-        if self.repo is None:
+        if self.entry_manager is None:
             self._show_warning(
                 "Delete entry",
                 "Please unlock the vault first."
             )
             return
 
-        self._show_warning(
+        selected = self.table.get_selected_row()
+
+        if selected is None:
+            self._show_warning(
+                "Delete entry",
+                "Please select an entry first."
+            )
+            return
+
+        entry_id = selected.get("id")
+
+        if entry_id is None:
+            self._show_error(
+                "Delete entry error",
+                "Selected entry does not contain id."
+            )
+            return
+
+        confirmed = messagebox.askyesno(
             "Delete entry",
-            "Deleting entries is temporarily disabled while Sprint 3 encrypted data model is being integrated."
+            "Are you sure you want to delete this entry?"
         )
+
+        if not confirmed:
+            return
+
+        try:
+            self.entry_manager.delete_entry(entry_id)
+            self._load_entries()
+
+            self.status.configure(
+                text="Status: Unlocked | Entry deleted"
+            )
+
+        except EntryManagerError as error:
+            self._show_error(
+                "Delete entry error",
+                str(error)
+            )
 
     # Password and session
 
