@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import secrets
 import os
 import re
 from dataclasses import dataclass
-from argon2 import PasswordHasher, Type
-from argon2.exceptions import VerifyMismatchError, VerificationError, InvalidHashError
 from hashlib import pbkdf2_hmac
+
+from argon2 import PasswordHasher, Type
+from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 
 # Password Policy
 
@@ -25,7 +25,7 @@ COMMON_WEAK_PATTERNS = {
     "admin123!",
     "myadmin1!",
     "loginlogin!",
-    ""
+    "",
 }
 COMMON_WEAK_SUBSTRINGS = [
     "password",
@@ -35,6 +35,7 @@ COMMON_WEAK_SUBSTRINGS = [
     "login",
 ]
 
+
 @dataclass(frozen=True)
 class PasswordPolicy:
     min_length: int = 12
@@ -43,19 +44,25 @@ class PasswordPolicy:
     require_digits: bool = True
     require_symbols: bool = True
 
+
 @dataclass(frozen=True)
 class PasswordValidationResult:
     ok: bool
     message: str
 
-def validate_password(password: str, policy: PasswordPolicy | None = None) -> PasswordValidationResult:
+
+def validate_password(
+    password: str, policy: PasswordPolicy | None = None
+) -> PasswordValidationResult:
     policy = policy or PasswordPolicy()
 
     if not isinstance(password, str) or not password:
         return PasswordValidationResult(False, "Пароль не может быть пустым")
 
     if len(password) < policy.min_length:
-        return PasswordValidationResult(False, f"Пароль должен быть не короче {policy.min_length} символов")
+        return PasswordValidationResult(
+            False, f"Пароль должен быть не короче {policy.min_length} символов"
+        )
 
     if policy.require_uppercase and not re.search(r"[A-Z]", password):
         return PasswordValidationResult(False, "Добавьте хотя бы одну заглавную букву")
@@ -67,7 +74,9 @@ def validate_password(password: str, policy: PasswordPolicy | None = None) -> Pa
         return PasswordValidationResult(False, "Добавьте хотя бы одну цифру")
 
     if policy.require_symbols and not re.search(r"[^A-Za-z0-9]", password):
-        return PasswordValidationResult(False, "Добавьте хотя бы один специальный символ")
+        return PasswordValidationResult(
+            False, "Добавьте хотя бы один специальный символ"
+        )
 
     lowered = password.lower()
 
@@ -75,15 +84,20 @@ def validate_password(password: str, policy: PasswordPolicy | None = None) -> Pa
         return PasswordValidationResult(False, "Слишком простой пароль.")
 
     if any(part in lowered for part in COMMON_WEAK_SUBSTRINGS):
-        return PasswordValidationResult(False, "Пароль содержит слишком простой шаблон.")
+        return PasswordValidationResult(
+            False, "Пароль содержит слишком простой шаблон."
+        )
 
     return PasswordValidationResult(True, "OK")
 
+
 # Auth Hash
+
 
 @dataclass(frozen=True)
 class AuthHashResult:
     hash: str
+
 
 @dataclass(frozen=True)
 class Argon2Settings:
@@ -92,20 +106,22 @@ class Argon2Settings:
     parallelism: int = 4
     hash_len: int = 32
 
+
 @dataclass(frozen=True)
 class PBKDF2Settings:
     iterations: int = 200_000
     salt_len: int = 16
     key_len: int = 32
 
+
 # Key Derivation
 
-class KeyDerivationService:
 
+class KeyDerivationService:
     def __init__(
-            self,
-            argon2_settings: Argon2Settings | None = None,
-            pbkdf2_settings: PBKDF2Settings | None = None,
+        self,
+        argon2_settings: Argon2Settings | None = None,
+        pbkdf2_settings: PBKDF2Settings | None = None,
     ) -> None:
         self.argon2_settings = argon2_settings or Argon2Settings()
         self.pbkdf2_settings = pbkdf2_settings or PBKDF2Settings()
@@ -146,9 +162,13 @@ class KeyDerivationService:
             dklen=self.pbkdf2_settings.key_len,
         )
 
+
 # UI Helper
 
-def get_password_rule_status(password: str, policy: PasswordPolicy | None = None) -> dict[str, bool]:
+
+def get_password_rule_status(
+    password: str, policy: PasswordPolicy | None = None
+) -> dict[str, bool]:
     policy = policy or PasswordPolicy()
 
     if not isinstance(password, str):
@@ -163,7 +183,7 @@ def get_password_rule_status(password: str, policy: PasswordPolicy | None = None
         "Есть цифра": bool(re.search(r"\d", password)),
         "Есть специальный символ": bool(re.search(r"[^A-Za-z0-9]", password)),
         "Пароль не слишком простой": (
-    lowered not in COMMON_WEAK_PATTERNS
-    and not any(part in lowered for part in COMMON_WEAK_SUBSTRINGS)
-),
+            lowered not in COMMON_WEAK_PATTERNS
+            and not any(part in lowered for part in COMMON_WEAK_SUBSTRINGS)
+        ),
     }

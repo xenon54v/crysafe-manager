@@ -197,10 +197,18 @@ class EntryDialog(ctk.CTkToplevel):
         self.tags_entry = self._add_entry(13, "Tags separated by commas")
         self.totp_entry = self._add_entry(15, "TOTP Secret")
         self.sharing_entry = self._add_entry(17, "Sharing metadata")
+        self.never_copy_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(
+            self.form,
+            text="Never allow this entry to be copied to the clipboard",
+            variable=self.never_copy_var,
+            fg_color=PINK,
+            hover_color=PINK_HOVER,
+        ).grid(row=19, column=0, sticky="w", padx=20, pady=(8, 6))
 
-        self._add_label(19, "Notes")
+        self._add_label(20, "Notes")
         self.notes_entry = ctk.CTkTextbox(self.form, height=110)
-        self.notes_entry.grid(row=20, column=0, sticky="ew", padx=20, pady=(0, 16))
+        self.notes_entry.grid(row=21, column=0, sticky="ew", padx=20, pady=(0, 16))
 
         buttons = ctk.CTkFrame(self, fg_color="transparent")
         buttons.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 20))
@@ -254,6 +262,7 @@ class EntryDialog(ctk.CTkToplevel):
         sharing = self._entry.get("sharing_metadata", {})
         if sharing:
             self.sharing_entry.insert(0, json.dumps(sharing, ensure_ascii=False))
+        self.never_copy_var.set(bool(sharing.get("never_copy_to_clipboard", False)))
         self.notes_entry.insert("1.0", str(self._entry.get("notes", "")))
 
     def _open_generator(self) -> None:
@@ -361,6 +370,7 @@ class EntryDialog(ctk.CTkToplevel):
                 parent=self,
             )
             return
+        sharing_metadata["never_copy_to_clipboard"] = self.never_copy_var.get()
 
         self.result = EntryResult(
             title=title,

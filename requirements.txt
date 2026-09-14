@@ -3,3 +3,8 @@ customtkinter
 argon2-cffi
 cryptography
 keyring
+pyperclip
+pystray
+Pillow
+pywin32; platform_system == "Windows"
+pyobjc-framework-Cocoa; platform_system == "Darwin"

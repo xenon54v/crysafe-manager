@@ -1,21 +1,20 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Optional
+
 
 @dataclass
 class SessionState:
-    user: Optional[str] = None
+    user: str | None = None
     locked: bool = True
 
-class StateManager:
 
-    def __init__(self, on_auto_lock: Optional[Callable[[], None]] = None) -> None:
+class StateManager:
+    def __init__(self, on_auto_lock: Callable[[], None] | None = None) -> None:
         self._session = SessionState()
-        self._clipboard_content: Optional[str] = None
-        self._clipboard_timer: Optional[threading.Timer] = None
-        self._inactivity_timer: Optional[threading.Timer] = None
+        self._inactivity_timer: threading.Timer | None = None
         self._lock = threading.Lock()
         self._on_auto_lock = on_auto_lock
 
@@ -33,25 +32,6 @@ class StateManager:
         with self._lock:
             return self._session.locked
 
-    def set_clipboard(self, value: str, timeout_seconds: int = 10) -> None:
-        with self._lock:
-            self._clipboard_content = value
-
-            if self._clipboard_timer:
-                self._clipboard_timer.cancel()
-
-            self._clipboard_timer = threading.Timer(timeout_seconds, self.clear_clipboard)
-            self._clipboard_timer.daemon = True
-            self._clipboard_timer.start()
-
-    def get_clipboard(self) -> Optional[str]:
-        with self._lock:
-            return self._clipboard_content
-
-    def clear_clipboard(self) -> None:
-        with self._lock:
-            self._clipboard_content = None
-
     def start_inactivity_timer(self, timeout_seconds: int) -> None:
         with self._lock:
             if self._inactivity_timer:
@@ -66,10 +46,6 @@ class StateManager:
 
     def stop_timers(self) -> None:
         with self._lock:
-            if self._clipboard_timer:
-                self._clipboard_timer.cancel()
-                self._clipboard_timer = None
-
             if self._inactivity_timer:
                 self._inactivity_timer.cancel()
                 self._inactivity_timer = None

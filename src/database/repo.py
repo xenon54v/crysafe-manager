@@ -139,6 +139,24 @@ class VaultRepository:
             )
             for table, entry_id, encrypted_data in encrypted_rows
         ]
+        encrypted_settings = self.db.execute(
+            """
+            SELECT setting_key, setting_value
+            FROM settings
+            WHERE encrypted = 1;
+            """
+        ).fetchall()
+        plaintext_settings = [
+            (
+                str(row["setting_key"]),
+                self.crypto.decrypt(
+                    bytes(row["setting_value"]),
+                    self.key_manager,
+                    associated_data=f"settings:{row['setting_key']}:v1".encode(),
+                ),
+            )
+            for row in encrypted_settings
+        ]
 
         new_salt = self.key_manager.generate_salt()
         new_key = self.key_manager.derive_key(new_password, new_salt)
@@ -156,12 +174,28 @@ class VaultRepository:
             )
             for table, entry_id, payload in plaintext_rows
         ]
+        reencrypted_settings = [
+            (
+                setting_key,
+                self.crypto.encrypt(
+                    value,
+                    temporary_key_manager,
+                    associated_data=f"settings:{setting_key}:v1".encode(),
+                ),
+            )
+            for setting_key, value in plaintext_settings
+        ]
 
         with self.db.transaction():
             for table, entry_id, encrypted_data in reencrypted_rows:
                 self.db.execute(
                     f"UPDATE {table} SET encrypted_data = ? WHERE id = ?;",
                     (encrypted_data, entry_id),
+                )
+            for setting_key, setting_value in reencrypted_settings:
+                self.db.execute(
+                    "UPDATE settings SET setting_value = ? WHERE setting_key = ?;",
+                    (setting_value, setting_key),
                 )
             self.db.execute(
                 """
@@ -179,4 +213,5 @@ class VaultRepository:
 
         self.key_manager.activate_key(new_key, new_salt)
         plaintext_rows.clear()
+        plaintext_settings.clear()
         return True

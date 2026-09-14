@@ -1,4 +1,4 @@
-﻿SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 CREATE_TABLES_SQL = [
     """
@@ -10,7 +10,6 @@ CREATE_TABLES_SQL = [
         tags TEXT
     );
     """,
-
     """
     CREATE TABLE IF NOT EXISTS deleted_entries (
         id TEXT PRIMARY KEY,
@@ -22,7 +21,6 @@ CREATE_TABLES_SQL = [
         tags TEXT
     );
     """,
-
     """
     CREATE TABLE IF NOT EXISTS audit_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,7 +31,6 @@ CREATE_TABLES_SQL = [
         signature BLOB
     );
     """,
-
     """
     CREATE TABLE IF NOT EXISTS settings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,7 +39,6 @@ CREATE_TABLES_SQL = [
         encrypted INTEGER NOT NULL CHECK (encrypted IN (0,1))
     );
     """,
-
     """
     CREATE TABLE IF NOT EXISTS key_store (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,19 +49,17 @@ CREATE_TABLES_SQL = [
         version INTEGER NOT NULL DEFAULT 1,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
-    """
+    """,
 ]
 
 CREATE_INDEXES_SQL = [
     "CREATE INDEX IF NOT EXISTS idx_vault_entries_created_at ON vault_entries(created_at);",
     "CREATE INDEX IF NOT EXISTS idx_vault_entries_updated_at ON vault_entries(updated_at);",
     "CREATE INDEX IF NOT EXISTS idx_vault_entries_tags ON vault_entries(tags);",
-
     "CREATE INDEX IF NOT EXISTS idx_deleted_entries_deleted_at ON deleted_entries(deleted_at);",
     "CREATE INDEX IF NOT EXISTS idx_deleted_entries_expires_at ON deleted_entries(expires_at);",
     "CREATE INDEX IF NOT EXISTS idx_deleted_entries_tags ON deleted_entries(tags);",
-
     "CREATE INDEX IF NOT EXISTS idx_audit_entry_id ON audit_log(entry_id);",
     "CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(setting_key);",
-    "CREATE INDEX IF NOT EXISTS idx_key_store_type ON key_store(key_type);"
+    "CREATE INDEX IF NOT EXISTS idx_key_store_type ON key_store(key_type);",
 ]

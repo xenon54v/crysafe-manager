@@ -220,18 +220,40 @@ class EntryManager:
     def generate_password(self, **options) -> str:
         return self.password_generator.generate(**options)
 
-    def get_clipboard_value(self, entry_id: str, field: str = "password") -> str:
-        if field not in {"password", "username"}:
+    def get_clipboard_value(
+        self,
+        entry_id: str,
+        field: str = "password",
+        *,
+        publish_event: bool = True,
+    ) -> str:
+        if field not in {"password", "username", "notes", "totp_secret", "all"}:
             raise EntryManagerError("Vault operation could not be completed.")
 
         entry = self.get_entry(entry_id)
         if entry is None:
             raise EntryManagerError("Vault operation could not be completed.")
 
-        value = str(entry.get(field, ""))
-        self._publish_event(
-            ClipboardCopied("ClipboardCopied", now_utc(), entry_id, field)
-        )
+        sharing_metadata = entry.get("sharing_metadata", {})
+        if bool(sharing_metadata.get("never_copy_to_clipboard", False)):
+            raise EntryManagerError("Clipboard copying is disabled for this entry.")
+
+        if field == "all":
+            values = (
+                ("Username", entry.get("username", "")),
+                ("Password", entry.get("password", "")),
+                ("URL", entry.get("url", "")),
+                ("Notes", entry.get("notes", "")),
+            )
+            value = "\n".join(f"{label}: {item}" for label, item in values if item)
+        else:
+            value = str(entry.get(field, ""))
+        if not value:
+            raise EntryManagerError("The selected field is empty.")
+        if publish_event:
+            self._publish_event(
+                ClipboardCopied("ClipboardCopied", now_utc(), entry_id, field)
+            )
         return value
 
     def _get_entry(self, entry_id: str) -> dict[str, Any] | None:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 from collections.abc import Callable
 from datetime import datetime
+from functools import partial
 from tkinter import ttk
 
 import customtkinter as ctk
@@ -25,7 +26,16 @@ def format_modified(value: str) -> str:
 
 
 class SecureTable(ctk.CTkFrame):
-    COLUMNS = ("Title", "Username", "Password", "Domain", "Modified")
+    COLUMNS = (
+        "Title",
+        "Username",
+        "Password",
+        "Domain",
+        "Modified",
+        "CopyUser",
+        "CopyPass",
+        "Clipboard",
+    )
 
     def __init__(
         self,
@@ -34,6 +44,7 @@ class SecureTable(ctk.CTkFrame):
         on_delete: Callable[[], None] | None = None,
         on_copy_username: Callable[[], None] | None = None,
         on_copy_password: Callable[[], None] | None = None,
+        on_copy_all: Callable[[], None] | None = None,
     ) -> None:
         super().__init__(master, corner_radius=16)
         self._entries: dict[str, dict] = {}
@@ -41,6 +52,9 @@ class SecureTable(ctk.CTkFrame):
         self._all_passwords_visible = False
         self._sort_reverse: dict[str, bool] = {}
         self._heading_drag_start: int | None = None
+        self._clipboard_entry_id: str | None = None
+        self._on_copy_username = on_copy_username
+        self._on_copy_password = on_copy_password
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
@@ -58,6 +72,9 @@ class SecureTable(ctk.CTkFrame):
             "Password": "Password  👁",
             "Domain": "Domain",
             "Modified": "Last Modified",
+            "CopyUser": "Copy User",
+            "CopyPass": "Copy Pass",
+            "Clipboard": "Clipboard",
         }
         widths = {
             "Title": 220,
@@ -65,14 +82,29 @@ class SecureTable(ctk.CTkFrame):
             "Password": 190,
             "Domain": 220,
             "Modified": 155,
+            "CopyUser": 90,
+            "CopyPass": 90,
+            "Clipboard": 90,
         }
         for column in self.COLUMNS:
-            self.tree.heading(
-                column,
-                text=headings[column],
-                command=lambda selected=column: self.sort_by(selected),
+            command = None
+            if column not in {"CopyUser", "CopyPass", "Clipboard"}:
+                command = partial(self.sort_by, column)
+            if command is not None:
+                self.tree.heading(
+                    column,
+                    text=headings[column],
+                    command=command,
+                )
+            else:
+                self.tree.heading(
+                    column,
+                    text=headings[column],
+                )
+            anchor = (
+                "center" if column in {"CopyUser", "CopyPass", "Clipboard"} else "w"
             )
-            self.tree.column(column, width=widths[column], minwidth=90, anchor="w")
+            self.tree.column(column, width=widths[column], minwidth=75, anchor=anchor)
 
         self.tree.grid(row=0, column=0, sticky="nsew", padx=(12, 0), pady=12)
         self.scrollbar = ctk.CTkScrollbar(
@@ -87,6 +119,7 @@ class SecureTable(ctk.CTkFrame):
             ("Delete", on_delete),
             ("Copy username", on_copy_username),
             ("Copy password", on_copy_password),
+            ("Copy all", on_copy_all),
         ):
             if callback is not None:
                 self._context_menu.add_command(label=label, command=callback)
@@ -186,7 +219,16 @@ class SecureTable(ctk.CTkFrame):
         self._visible_password_ids.clear()
         self._all_passwords_visible = False
         self._entries.clear()
+        self._clipboard_entry_id = None
         self.tree.delete(*self.tree.get_children())
+
+    def mark_clipboard_entry(self, entry_id: str | None) -> None:
+        previous = self._clipboard_entry_id
+        self._clipboard_entry_id = str(entry_id) if entry_id is not None else None
+        if previous:
+            self._refresh_row(previous)
+        if self._clipboard_entry_id:
+            self._refresh_row(self._clipboard_entry_id)
 
     def _display_values(self, entry: dict) -> tuple[str, ...]:
         entry_id = str(entry["id"])
@@ -198,6 +240,9 @@ class SecureTable(ctk.CTkFrame):
             f"{password}  👁",
             extract_domain(str(entry.get("url", ""))),
             format_modified(str(entry.get("updated_at", ""))),
+            "⧉ User",
+            "⧉ Pass",
+            "● Active" if entry_id == self._clipboard_entry_id else "",
         )
 
     def _refresh_visible_rows(self) -> None:
@@ -226,11 +271,22 @@ class SecureTable(ctk.CTkFrame):
 
     def _finish_pointer_action(self, event) -> None:
         region = self.tree.identify_region(event.x, event.y)
-        if region == "cell" and self.tree.identify_column(event.x) == "#3":
+        column = self.tree.identify_column(event.x)
+        if region == "cell" and column == "#3":
             entry_id = self.tree.identify_row(event.y)
             if entry_id:
                 self.tree.focus(entry_id)
                 self.toggle_selected_password()
+        elif region == "cell" and column in {"#6", "#7"}:
+            entry_id = self.tree.identify_row(event.y)
+            if entry_id:
+                self.tree.selection_set(entry_id)
+                self.tree.focus(entry_id)
+                callback = (
+                    self._on_copy_username if column == "#6" else self._on_copy_password
+                )
+                if callback is not None:
+                    callback()
 
         if region == "heading" and self._heading_drag_start is not None:
             end = self._column_position(event.x)

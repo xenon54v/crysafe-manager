@@ -1,20 +1,24 @@
 # CryptoSafe Manager
 
-CryptoSafe Manager is a desktop password manager for the Applied Cryptography course. Sprint 3 provides encrypted vault CRUD operations, password generation, search, filtering, and a CustomTkinter interface.
+CryptoSafe Manager is a desktop password manager for the Applied Cryptography course. Sprint 4 adds a secure, cross-platform clipboard to the encrypted Sprint 3 vault.
 
-## Sprint 3 features
+## Sprint 4 features
 
-- AES-256-GCM encryption for every entry with a unique 12-byte nonce
-- authentication of each encrypted BLOB and the entry ID through associated data
-- SQLite storage without plaintext credential columns
-- connection pooling and transactional create, read, update, and delete operations
-- soft deletion with a 30-day expiration timestamp
-- configurable password generator with strength checks and recent-password history
-- multi-select table, password visibility controls, context actions, sorting, resizing, and column reordering
-- real-time full-text and fuzzy search with field-specific filters
-- category, date, tag, and password-strength filtering
-- future fields for TOTP and sharing metadata
-- clipboard events and automatic clipboard clearing prepared for Sprint 4
+- automatic clipboard clearing from 5 seconds to 5 minutes, or an explicit no-timeout mode
+- manual clearing and mandatory clearing on replacement, vault lock, logout, and application exit
+- Windows `CF_UNICODETEXT`, macOS `NSPasteboard`, Linux Wayland/X11, and `pyperclip` fallback adapters
+- Linux support for both `CLIPBOARD` and `PRIMARY` selections
+- clipboard ownership monitoring with safe degraded operation when an OS cannot expose access information
+- observer-based GUI updates and `ClipboardCopied` / `ClipboardCleared` domain events
+- countdown in the status bar, native tray status, non-blocking notifications, and a per-entry activity indicator
+- masked clipboard preview with master-password authentication before full reveal
+- per-entry “never copy” policy and a “Copy all” context action
+- XOR-masked, page-locked process memory with explicit zeroing after clear
+- optional session-only in-memory clipboard and Windows anti-screenshot protection
+- encrypted clipboard settings with Standard, Secure, and Public Computer profiles
+- metadata-only security audit events that never include clipboard values
+
+The system clipboard APIs do not reliably report when another process only reads an unchanged value. CryptoSafe detects ownership/content changes on every platform and provides an explicit access-reporting hook for platform integrations. The Public Computer profile avoids this OS limitation by using the process-isolated in-memory clipboard.
 
 ## Installation on Windows
 
@@ -34,6 +38,8 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
+Wayland uses `wl-copy` and `wl-paste` when available. X11 uses `xclip` first and then `xsel`. Install one of these native tools for the most reliable Linux behavior.
+
 ## Run
 
 ```bash
@@ -42,18 +48,13 @@ python -m src.main
 
 The default development database is `data/cryptosafe_dev.db`. Set `CRYPTOSAFE_DB_PATH` before launch to use another path.
 
-## Search syntax
+## Clipboard profiles
 
-Search checks the title, username, URL, notes, category, and tags. Typographical errors are tolerated for words of at least three characters.
-
-```text
-github
-primry
-title:"work"
-username:student tag:study
-```
-
-The interface also provides category, date, and password-strength filters. The last 10 queries remain available during the unlocked session.
+| Profile | Timeout | Security | Behavior |
+| --- | ---: | --- | --- |
+| Standard | 30 seconds | Basic | notifications and automatic clear |
+| Secure | 15 seconds | Advanced | accelerated clear and blocking after suspicious access |
+| Public Computer | 5 seconds | Paranoid | session-only in-memory clipboard and blocking |
 
 ## Tests
 
@@ -61,21 +62,23 @@ The interface also provides category, date, and password-strength filters. The l
 python -m pytest -q
 ```
 
-The Sprint 3 suite covers encryption integrity, CRUD transactions, rollback, connection pooling, concurrent operations, 10,000 generated passwords, search behavior, and the required 1,000-entry performance checks.
+The Sprint 4 suite covers timer accuracy, Windows/macOS/Linux adapter behavior, encrypted settings, memory masking and zeroing, rapid copy replacement, monitoring, cooperative crash cleanup, audit safety, and performance limits.
 
 ## Project structure
 
 ```text
 src/
   core/
-    crypto/                 master password and key derivation
-    vault/                  encryption, CRUD, generation, search, URL tools
-  database/                 schema, connection pool, repositories, audit log
-  gui/                      main window, entry dialogs, reusable widgets
+    clipboard/             service, platform adapters, monitor, secure memory
+    crypto/                master password and key derivation
+    vault/                 encryption, CRUD, generation, search, URL tools
+  database/                schema, connection pool, settings and audit repositories
+  gui/                     main window, clipboard UI, dialogs, reusable widgets
 tests/
   sprint1/
   sprint2/
   sprint3/
+  sprint4/
 ```
 
-Detailed code documentation is provided in `docs/CryptoSafe_Manager_Sprint_3_Code_Explanation.docx`.
+Detailed Russian-language code documentation is provided in `docs/CryptoSafe_Manager_Sprint_4_Code_Explanation.docx`.

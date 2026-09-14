@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="73fa0911-439a-4651-b160-23c5affec461" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitattributes" beforeDir="false" afterPath="$PROJECT_DIR$/.gitattributes" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/crypto/abstract.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/crypto/abstract.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/crypto/key_derivation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/crypto/key_derivation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/events.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/events.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/key_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/key_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/state_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/state_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/vault/encryption_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/vault/encryption_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/vault/entry_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/vault/entry_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/vault/password_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/vault/password_generator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/vault/search_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/vault/search_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/vault/url_tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/vault/url_tools.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/database/audit_repo.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/audit_repo.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/database/db.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/db.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/database/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/database/repo.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/repo.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/gui/add_entry_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/add_entry_dialog.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/gui/edit_entry_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/edit_entry_dialog.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/gui/entry_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/entry_dialog.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/gui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/main_window.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/gui/settings_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/settings_dialog.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/gui/setup_wizard.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/setup_wizard.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/gui/widgets/secure_table.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/widgets/secure_table.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/conftest.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/conftest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/sprint2/test_password_rotation.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint2/test_password_rotation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/sprint3/test_database_and_transactions.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint3/test_database_and_transactions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/sprint3/test_encryption_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint3/test_encryption_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/sprint3/test_entry_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint3/test_entry_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/sprint3/test_gui_formatting.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint3/test_gui_formatting.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/sprint3/test_integration_and_performance.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint3/test_integration_and_performance.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/sprint3/test_password_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint3/test_password_generator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/sprint3/test_search_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint3/test_search_service.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="EmbeddingIndexingInfo">
+    <option name="cachedIndexableFilesCount" value="79" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;xenon54v&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/xenon54v/crysafe-manager.git&quot;,
+    &quot;accountId&quot;: &quot;fdb1001b-51f6-4d1d-838c-46bd095aea70&quot;
+  }
+}</component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="3BUJu6qHQPq8i9evDADklfIlwaB" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python tests.Python tests in test_crypto.py.executor": "Run",
+    "Python tests.Python tests in test_encryption_service.py.executor": "Run",
+    "Python tests.Python tests in test_entry_manager.py.executor": "Run",
+    "Python tests.Python tests in test_key_derivation.py.executor": "Run",
+    "Python tests.Python tests in test_key_storage.py.executor": "Run",
+    "Python.Unnamed.executor": "Run",
+    "Python.db.executor": "Run",
+    "Python.entry_manager.executor": "Run",
+    "Python.key_manager.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.main_window.executor": "Debug",
+    "Python.manual_check_sprint3.executor": "Run",
+    "Python.setup_wizard.executor": "Run",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "ai.playground.ignore.import.keys.banner.in.settings": "true",
+    "git-widget-placeholder": "sprint4-integration",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "ml.llm.AcpAgentsConfigurable",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\ksenia\PycharmProjects\crysafe-manager\src\core" />
+      <recent name="C:\Users\ksenia\PycharmProjects\crysafe-manager\src\core\crypto" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="Unnamed" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="crysafe-manager" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="Python 3.14 (crysafe-manager)" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-2653e85de345-6d6dccd035ac-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.31033.139" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="73fa0911-439a-4651-b160-23c5affec461" name="Changes" comment="" />
+      <created>1774537934564</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1774537934564</updated>
+      <workItem from="1774537935739" duration="1041000" />
+      <workItem from="1774543169965" duration="9466000" />
+      <workItem from="1774564588693" duration="4995000" />
+      <workItem from="1774570140658" duration="665000" />
+      <workItem from="1774570830982" duration="1041000" />
+      <workItem from="1774572309084" duration="3654000" />
+      <workItem from="1774576155394" duration="1399000" />
+      <workItem from="1774603317309" duration="426000" />
+      <workItem from="1774640187975" duration="38000" />
+      <workItem from="1774783240996" duration="3344000" />
+      <workItem from="1774810971351" duration="4675000" />
+      <workItem from="1774848752980" duration="194000" />
+      <workItem from="1774947758265" duration="397000" />
+      <workItem from="1775079013977" duration="36000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/crysafe_manager$key_manager.coverage" NAME="key_manager Coverage Results" MODIFIED="1774576619364" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/core" />
+    <SUITE FILE_PATH="coverage/crysafe_manager$main_window.coverage" NAME="main_window Coverage Results" MODIFIED="1774543206925" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/gui" />
+  </component>
+</project>

@@ -1,16 +1,23 @@
 from __future__ import annotations
 
 import sqlite3
-import tkinter as tk
-from contextlib import suppress
+import sys
 from datetime import datetime, timedelta, timezone
 
 import customtkinter as ctk
 
+from src.core.clipboard import (
+    ClipboardConfig,
+    ClipboardService,
+    ClipboardSnapshot,
+    ClipboardState,
+    ClipboardType,
+    create_platform_adapter,
+)
+from src.core.clipboard.clipboard_monitor import ClipboardMonitor
 from src.core.config import ConfigManager
 from src.core.crypto.authentication import AuthenticationService
 from src.core.events import (
-    ClipboardCleared,
     EventBus,
     UserLoggedIn,
     UserLoggedOut,
@@ -23,8 +30,14 @@ from src.core.vault.url_tools import extract_domain
 from src.database.audit_repo import AuditRepository
 from src.database.db import Database
 from src.database.repo import VaultRepository
+from src.database.settings_repo import SettingsRepository, SettingsRepositoryError
 from src.gui.add_entry_dialog import AddEntryDialog
 from src.gui.change_password_dialog import ChangePasswordDialog
+from src.gui.clipboard_ui import (
+    ClipboardPreviewDialog,
+    ClipboardToast,
+    TrayStatusIndicator,
+)
 from src.gui.edit_entry_dialog import EditEntryDialog
 from src.gui.settings_dialog import SettingsDialog
 from src.gui.setup_wizard import LoginDialog, SetupWizard
@@ -47,13 +60,19 @@ class MainWindow(ctk.CTk):
         self.repo: VaultRepository | None = None
         self.entry_manager: EntryManager | None = None
         self.audit_repo: AuditRepository | None = None
+        self.settings_repo: SettingsRepository | None = None
+        self.clipboard_service: ClipboardService | None = None
+        self.clipboard_monitor: ClipboardMonitor | None = None
+        self.clipboard_config = ClipboardConfig()
+        self.tray_indicator: TrayStatusIndicator | None = None
         self.master_password: str | None = None
         self.lock_overlay = None
         self.auth_dialog_open = False
         self._all_entries: list[dict] = []
         self._search_after_id: str | None = None
         self._passwords_visible = False
-        self._clipboard_after_id: str | None = None
+        self._clipboard_status_after_id: str | None = None
+        self._last_clipboard_message = ""
 
         self.state_manager = StateManager(on_auto_lock=self._handle_auto_lock)
         self.auth_service = AuthenticationService()
@@ -114,13 +133,15 @@ class MainWindow(ctk.CTk):
                 ("Edit", self._edit_entry),
                 ("Delete", self._delete_entry),
                 ("Show Passwords", self._toggle_all_passwords),
+                ("Clear Clipboard", self._manual_clear_clipboard),
+                ("Preview", self._open_clipboard_preview),
             ),
             start=1,
         ):
             button = ctk.CTkButton(
                 top,
                 text=label,
-                width=120,
+                width=112,
                 command=command,
                 fg_color=PINK,
                 hover_color=PINK_HOVER,
@@ -184,6 +205,7 @@ class MainWindow(ctk.CTk):
             on_delete=self._delete_entry,
             on_copy_username=lambda: self._copy_selected_field("username"),
             on_copy_password=lambda: self._copy_selected_field("password"),
+            on_copy_all=self._copy_all_selected,
         )
         self.table.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
 
@@ -217,13 +239,23 @@ class MainWindow(ctk.CTk):
         self._show_lock_overlay()
 
     def _create_status_bar(self) -> None:
+        status_frame = ctk.CTkFrame(self, fg_color="transparent")
+        status_frame.grid(row=3, column=0, sticky="ew", padx=28, pady=(0, 12))
+        status_frame.grid_columnconfigure(0, weight=1)
         self.status = ctk.CTkLabel(
-            self,
+            status_frame,
             text="Status: Locked",
             anchor="w",
             font=ctk.CTkFont(size=13),
         )
-        self.status.grid(row=3, column=0, sticky="ew", padx=28, pady=(0, 12))
+        self.status.grid(row=0, column=0, sticky="w")
+        self.clipboard_status = ctk.CTkLabel(
+            status_frame,
+            text="Clipboard: empty",
+            anchor="e",
+            font=ctk.CTkFont(size=13),
+        )
+        self.clipboard_status.grid(row=0, column=1, sticky="e", padx=(18, 0))
 
     def _bind_shortcuts(self) -> None:
         self.bind("<Control-n>", lambda _event: self._add_entry())
@@ -318,6 +350,13 @@ class MainWindow(ctk.CTk):
             self.repo.key_manager,
             event_bus=self.event_bus,
         )
+        self.settings_repo = SettingsRepository(self.db, self.repo.key_manager)
+        try:
+            self.clipboard_config = self.settings_repo.load_clipboard_config()
+        except SettingsRepositoryError as exc:
+            self.clipboard_config = ClipboardConfig.profile("standard")
+            self._show_error("Clipboard Settings", str(exc))
+        self._start_clipboard_subsystem()
         self.auth_service.login("local_user")
         self.state_manager.login("local_user")
         self.state_manager.start_inactivity_timer(self._get_auto_lock_timeout())
@@ -451,34 +490,80 @@ class MainWindow(ctk.CTk):
         self._load_entries()
 
     def _copy_selected_field(self, field: str) -> None:
-        if self.entry_manager is None:
+        if self.entry_manager is None or self.clipboard_service is None:
             return
-        entry_id = self.table.get_selected_entry_id()
-        if entry_id is None:
+        selected = self.table.get_selected_row()
+        if selected is None:
             self._show_warning("Copy", "Select one entry first.")
             return
         try:
-            value = self.entry_manager.get_clipboard_value(str(entry_id), field)
-        except EntryManagerError as exc:
+            entry_id = str(selected["id"])
+            value = self.entry_manager.get_clipboard_value(
+                entry_id, field, publish_event=False
+            )
+            value_type = {
+                "username": ClipboardType.USERNAME,
+                "password": ClipboardType.PASSWORD,
+                "totp_secret": ClipboardType.TOTP,
+            }.get(field, ClipboardType.TEXT)
+            self.clipboard_service.copy_text(
+                value,
+                entry_id=entry_id,
+                field=field,
+                source=str(selected.get("title", "")),
+                data_type=value_type,
+            )
+        except (EntryManagerError, PermissionError, ValueError, RuntimeError) as exc:
             self._show_error("Copy", str(exc))
             return
 
-        self.clipboard_clear()
-        self.clipboard_append(value)
-        self.state_manager.set_clipboard(value, timeout_seconds=10)
-        if self._clipboard_after_id is not None:
-            self.after_cancel(self._clipboard_after_id)
-        self._clipboard_after_id = self.after(10_000, self._clear_system_clipboard)
-        self.status.configure(
-            text=f"Status: Unlocked | {field.title()} copied for 10 seconds"
+    def _copy_all_selected(self) -> None:
+        self._copy_selected_field("all")
+
+    def _manual_clear_clipboard(self) -> None:
+        if self.clipboard_service is not None:
+            self.clipboard_service.clear("manual")
+
+    def _open_clipboard_preview(self) -> None:
+        if (
+            self.clipboard_service is None
+            or not self.clipboard_service.has_sensitive_value
+        ):
+            self._show_info("Secure Clipboard", "The clipboard is empty.")
+            return
+        ClipboardPreviewDialog(
+            self,
+            self.clipboard_service.snapshot,
+            self._reveal_clipboard_value,
         )
 
-    def _clear_system_clipboard(self) -> None:
-        self._clipboard_after_id = None
-        with suppress(tk.TclError):
-            self.clipboard_clear()
-        self.state_manager.clear_clipboard()
-        self.event_bus.publish(ClipboardCleared("ClipboardCleared", now_utc(), "timer"))
+    def _reveal_clipboard_value(self) -> str:
+        if self.clipboard_service is None:
+            raise RuntimeError("The clipboard is empty.")
+        return self.clipboard_service.reveal_current(
+            self._authenticate_clipboard_preview
+        )
+
+    def _authenticate_clipboard_preview(self) -> bool:
+        if self.repo is None or self.db is None:
+            return False
+        dialog = ctk.CTkInputDialog(
+            text="Enter the master password to reveal the value:",
+            title="Clipboard Authentication",
+        )
+        password = dialog.get_input()
+        if password is None:
+            return False
+        row = self.db.execute(
+            "SELECT hash FROM key_store WHERE key_type = ? LIMIT 1;", ("master",)
+        ).fetchone()
+        if row is None:
+            return False
+        stored_hash = row[0].decode("utf-8") if isinstance(row[0], bytes) else row[0]
+        valid = self.repo.key_manager.verify_password(password, stored_hash)
+        if not valid:
+            self._show_error("Clipboard Authentication", "Invalid master password.")
+        return valid
 
     def _toggle_all_passwords(self) -> None:
         self._passwords_visible = not self._passwords_visible
@@ -498,6 +583,135 @@ class MainWindow(ctk.CTk):
             },
             key=str.casefold,
         )
+
+    def _start_clipboard_subsystem(self) -> None:
+        if self.audit_repo is None:
+            return
+        adapter = create_platform_adapter(private=self.clipboard_config.ephemeral_mode)
+        self.clipboard_service = ClipboardService(
+            adapter,
+            event_bus=self.event_bus,
+            is_vault_unlocked=lambda: (
+                self.repo is not None
+                and self.entry_manager is not None
+                and not self.state_manager.is_locked()
+            ),
+            config=self.clipboard_config,
+            audit_callback=self.audit_repo.add_clipboard_log,
+        )
+        self.clipboard_service.add_observer(self)
+        self.clipboard_service.install_signal_cleanup()
+        self.clipboard_monitor = ClipboardMonitor(
+            adapter,
+            self.clipboard_service,
+            poll_interval=1.0,
+            on_degraded=self._clipboard_monitor_degraded,
+        )
+        self.clipboard_monitor.start()
+        self.tray_indicator = TrayStatusIndicator(
+            lambda: self.after(0, self._manual_clear_clipboard),
+            lambda: self.after(0, self._on_close),
+        )
+        if not self.tray_indicator.start():
+            self.audit_repo.add_clipboard_log(
+                "clipboard_error", None, "operation=tray;fallback=status_bar"
+            )
+        self._apply_screen_capture_protection()
+        self._schedule_clipboard_countdown()
+
+    def clipboard_state_changed(self, snapshot: ClipboardSnapshot) -> None:
+        try:
+            self.after(
+                0, lambda current=snapshot: self._apply_clipboard_snapshot(current)
+            )
+        except RuntimeError:
+            pass
+
+    def _apply_clipboard_snapshot(self, snapshot: ClipboardSnapshot) -> None:
+        active_entry = (
+            snapshot.entry_id
+            if snapshot.state
+            in {
+                ClipboardState.ACTIVE,
+                ClipboardState.WARNING,
+            }
+            else None
+        )
+        self.table.mark_clipboard_entry(active_entry)
+        remaining = snapshot.remaining_seconds()
+        if snapshot.state in {ClipboardState.ACTIVE, ClipboardState.WARNING}:
+            timeout = "no timeout" if remaining is None else f"{remaining}s remaining"
+            text = f"Clipboard: {snapshot.data_type.value if snapshot.data_type else 'text'} | {timeout}"
+        elif snapshot.state is ClipboardState.ERROR:
+            text = "Clipboard: clear/copy error"
+        elif snapshot.state is ClipboardState.BLOCKED:
+            text = "Clipboard: copying blocked"
+        else:
+            text = "Clipboard: empty"
+        self.clipboard_status.configure(text=text)
+        if self.tray_indicator is not None:
+            self.tray_indicator.update(text.replace("Clipboard: ", ""))
+
+        should_notify = (
+            self.clipboard_config.notifications_enabled
+            and snapshot.message
+            and snapshot.message != self._last_clipboard_message
+        )
+        if should_notify:
+            ClipboardToast(
+                self,
+                snapshot.message,
+                warning=snapshot.state
+                in {ClipboardState.WARNING, ClipboardState.ERROR},
+            )
+        self._last_clipboard_message = snapshot.message
+
+    def _schedule_clipboard_countdown(self) -> None:
+        if self._clipboard_status_after_id is not None:
+            self.after_cancel(self._clipboard_status_after_id)
+        self._clipboard_status_after_id = self.after(
+            250, self._refresh_clipboard_countdown
+        )
+
+    def _refresh_clipboard_countdown(self) -> None:
+        self._clipboard_status_after_id = None
+        if self.clipboard_service is None:
+            return
+        snapshot = self.clipboard_service.snapshot
+        if snapshot.state in {ClipboardState.ACTIVE, ClipboardState.WARNING}:
+            self._apply_clipboard_snapshot(snapshot)
+        self._clipboard_status_after_id = self.after(
+            250, self._refresh_clipboard_countdown
+        )
+
+    def _clipboard_monitor_degraded(self, message: str) -> None:
+        if self.audit_repo is not None:
+            self.audit_repo.add_clipboard_log(
+                "clipboard_error", None, "operation=monitor;mode=degraded"
+            )
+        try:
+            self.after(0, lambda: self._show_warning("Clipboard Monitor", message))
+        except RuntimeError:
+            pass
+
+    def _apply_screen_capture_protection(self) -> None:
+        if (
+            sys.platform != "win32"
+            or self.clipboard_config.security_level.value == "basic"
+        ):
+            return
+        try:
+            import ctypes
+
+            display_affinity_exclude = 0x00000011
+            ctypes.windll.user32.SetWindowDisplayAffinity(
+                self.winfo_id(), display_affinity_exclude
+            )
+        except (AttributeError, OSError):
+            if self.audit_repo is not None:
+                self.audit_repo.add_clipboard_log(
+                    "clipboard_error", None, "operation=anti_screenshot"
+                )
 
     def _change_master_password(self) -> None:
         if self.repo is None or self.audit_repo is None:
@@ -527,13 +741,38 @@ class MainWindow(ctk.CTk):
         AuditLogViewer(self, self.audit_repo)
 
     def _open_settings(self) -> None:
-        if self.db is None:
+        if self.db is None or self.settings_repo is None:
             self._show_warning("Settings", "Unlock the vault first.")
             return
-        dialog = SettingsDialog(self)
+        dialog = SettingsDialog(self, self.clipboard_config)
         self.wait_window(dialog)
         if dialog.result == "change_master_password":
             self._change_master_password()
+        elif isinstance(dialog.result, ClipboardConfig):
+            previous_ephemeral = self.clipboard_config.ephemeral_mode
+            try:
+                self.settings_repo.save_clipboard_config(dialog.result)
+            except SettingsRepositoryError as exc:
+                self._show_error("Clipboard Settings", str(exc))
+                return
+            self.clipboard_config = dialog.result
+            if self.clipboard_service is not None:
+                if previous_ephemeral != dialog.result.ephemeral_mode:
+                    if self.clipboard_monitor is not None:
+                        self.clipboard_monitor.stop()
+                    adapter = create_platform_adapter(
+                        private=dialog.result.ephemeral_mode
+                    )
+                    self.clipboard_service.replace_adapter(adapter)
+                    self.clipboard_monitor = ClipboardMonitor(
+                        adapter,
+                        self.clipboard_service,
+                        poll_interval=1.0,
+                        on_degraded=self._clipboard_monitor_degraded,
+                    )
+                    self.clipboard_monitor.start()
+                self.clipboard_service.update_config(dialog.result)
+            self._apply_screen_capture_protection()
 
     def _get_auto_lock_timeout(self) -> int:
         if self.db is None:
@@ -565,6 +804,7 @@ class MainWindow(ctk.CTk):
         self.repo = None
         self.entry_manager = None
         self.audit_repo = None
+        self.settings_repo = None
         if db_path is not None:
             self.after(100, lambda: self._show_login_dialog(db_path))
 
@@ -581,12 +821,22 @@ class MainWindow(ctk.CTk):
         self.password_toggle_button.configure(text="Show Passwords")
         if self.entry_manager is not None:
             self.entry_manager.password_generator.clear_history()
+        if self.clipboard_monitor is not None:
+            self.clipboard_monitor.stop()
+            self.clipboard_monitor = None
+        if self.clipboard_service is not None:
+            self.clipboard_service.clear("vault_lock")
+            self.clipboard_service.remove_observer(self)
+            self.clipboard_service = None
+        if self.tray_indicator is not None:
+            self.tray_indicator.stop()
+            self.tray_indicator = None
+        if self._clipboard_status_after_id is not None:
+            self.after_cancel(self._clipboard_status_after_id)
+            self._clipboard_status_after_id = None
+        self.clipboard_status.configure(text="Clipboard: empty")
         if self.repo is not None:
             self.repo.key_manager.lock()
-        if self._clipboard_after_id is not None:
-            self.after_cancel(self._clipboard_after_id)
-            self._clipboard_after_id = None
-        self._clear_system_clipboard()
 
     def _unlock_from_overlay(self) -> None:
         if self.auth_dialog_open:
@@ -620,8 +870,8 @@ class MainWindow(ctk.CTk):
     def _on_about(self) -> None:
         self._show_info(
             "About",
-            "CryptoSafe Manager\n\nSprint 3\nAES-256-GCM encrypted local vault\n"
-            "Secure password generation, search, filtering, and encrypted CRUD operations.",
+            "CryptoSafe Manager\n\nSprint 4\nAES-256-GCM encrypted local vault\n"
+            "Secure cross-platform clipboard, automatic clearing, monitoring, and encrypted settings.",
         )
 
     def _on_close(self) -> None:
