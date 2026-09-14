@@ -23,14 +23,14 @@ def test_password_change_reencrypts_vault_entries(tmp_path: Path):
             password=f"secret-password-{i}",
             url=f"https://service{i}.example.com",
             notes="test note",
-            tags="test"
+            tags="test",
         )
 
     assert repo.count_entries() == 10
 
     before_rows = db.execute(
         """
-        SELECT id, encrypted_password
+        SELECT id, encrypted_data
         FROM vault_entries
         ORDER BY id;
         """
@@ -45,7 +45,7 @@ def test_password_change_reencrypts_vault_entries(tmp_path: Path):
 
     after_rows = db.execute(
         """
-        SELECT id, encrypted_password
+        SELECT id, encrypted_data
         FROM vault_entries
         ORDER BY id;
         """

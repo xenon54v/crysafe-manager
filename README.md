@@ -1,36 +1,22 @@
 # CryptoSafe Manager
 
-CryptoSafe Manager is a sprint-based educational project: a cross-platform password manager with GUI, encrypted local database, and modular architecture.
+CryptoSafe Manager is a desktop password manager for the Applied Cryptography course. Sprint 3 provides encrypted vault CRUD operations, password generation, search, filtering, and a CustomTkinter interface.
 
----
+## Sprint 3 features
 
-## Vision
+- AES-256-GCM encryption for every entry with a unique 12-byte nonce
+- authentication of each encrypted BLOB and the entry ID through associated data
+- SQLite storage without plaintext credential columns
+- connection pooling and transactional create, read, update, and delete operations
+- soft deletion with a 30-day expiration timestamp
+- configurable password generator with strength checks and recent-password history
+- multi-select table, password visibility controls, context actions, sorting, resizing, and column reordering
+- real-time full-text and fuzzy search with field-specific filters
+- category, date, tag, and password-strength filtering
+- future fields for TOTP and sharing metadata
+- clipboard events and automatic clipboard clearing prepared for Sprint 4
 
-- Secure local vault (encrypted at rest)
-- Modular and extensible architecture
-- Event-driven design
-- Audit logging and future signature validation
-- Clipboard protection and auto-lock
-- Backup/restore and packaging support
-
----
-
-## Sprint Roadmap (8 Sprints)
-
-1. **Foundation** – architecture, DB schema, placeholder crypto, event bus, GUI shell, tests, CI
-2. **Key Management** – master password + key derivation + key_store integration
-3. **Real Encryption** – replace XOR placeholder with AES-GCM
-4. **Clipboard Security** – copy/auto-clear + clipboard events
-5. **Audit Signatures** – implement signature validation + viewer
-6. **Import/Export** – structured import/export flows
-7. **Auto-lock** – inactivity timer + session integration
-8. **Packaging & Backup** – finalize backup/restore + Docker/build scripts
-
----
-
-## Setup (Windows / PowerShell)
-
-Create virtual environment:
+## Installation on Windows
 
 ```powershell
 python -m venv .venv
@@ -38,30 +24,58 @@ python -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
----
 
-## Architecture Overview (MVC-like Separation)
+## Installation on macOS and Linux
 
-- **Model** → `src/database/`
-- **Core (controller-like)** → `src/core/`
-- **View** → `src/gui/`
-
----
-
-## Architecture Diagram (MVC Flow)
-
-```mermaid
-flowchart LR
-    GUI[GUI Layer\nsrc/gui] --> CORE[Core Layer\nsrc/core]
-    CORE --> DB[Database Layer\nsrc/database]
-    CORE --> EVT[Event Bus\nsrc/core/events.py]
-    EVT --> GUI
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
----
 
-## CI
+## Run
 
-GitHub Actions runs tests automatically on every push:
+```bash
+python -m src.main
+```
 
-- Workflow: `.github/workflows/tests.yml`
-- Command: `python -m pytest`
+The default development database is `data/cryptosafe_dev.db`. Set `CRYPTOSAFE_DB_PATH` before launch to use another path.
+
+## Search syntax
+
+Search checks the title, username, URL, notes, category, and tags. Typographical errors are tolerated for words of at least three characters.
+
+```text
+github
+primry
+title:"work"
+username:student tag:study
+```
+
+The interface also provides category, date, and password-strength filters. The last 10 queries remain available during the unlocked session.
+
+## Tests
+
+```bash
+python -m pytest -q
+```
+
+The Sprint 3 suite covers encryption integrity, CRUD transactions, rollback, connection pooling, concurrent operations, 10,000 generated passwords, search behavior, and the required 1,000-entry performance checks.
+
+## Project structure
+
+```text
+src/
+  core/
+    crypto/                 master password and key derivation
+    vault/                  encryption, CRUD, generation, search, URL tools
+  database/                 schema, connection pool, repositories, audit log
+  gui/                      main window, entry dialogs, reusable widgets
+tests/
+  sprint1/
+  sprint2/
+  sprint3/
+```
+
+Detailed code documentation is provided in `docs/CryptoSafe_Manager_Sprint_3_Code_Explanation.docx`.

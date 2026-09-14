@@ -1,12 +1,23 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+
 class EncryptionService(ABC):
     @abstractmethod
-    def encrypt(self, data: bytes, key_manager) -> bytes:
+    def encrypt(
+        self,
+        data: bytes,
+        key_manager,
+        associated_data: bytes | None = None,
+    ) -> bytes:
         raise NotImplementedError
 
     @abstractmethod
-    def decrypt(self, data: bytes, key_manager) -> bytes:
+    def decrypt(
+        self,
+        data: bytes,
+        key_manager,
+        associated_data: bytes | None = None,
+    ) -> bytes:
         raise NotImplementedError

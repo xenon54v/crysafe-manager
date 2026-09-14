@@ -2,51 +2,33 @@ from __future__ import annotations
 
 import json
 import uuid
-from dataclasses import dataclass
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from src.core.events import EventBus, now_utc
+from src.core.events import (
+    ClipboardCopied,
+    EntryCreated,
+    EntryDeleted,
+    EntryUpdated,
+    EventBus,
+    now_utc,
+)
 from src.core.key_manager import KeyManager
 from src.core.vault.encryption_service import AESGCMEncryptionService
 from src.core.vault.password_generator import PasswordGenerator
+from src.core.vault.url_tools import is_valid_url
+
 
 class EntryManagerError(Exception):
-    """Ошибка при выполнении операции с записью хранилища."""
+    """Raised when a vault operation cannot be completed safely."""
 
-@dataclass
-class EntryCreated:
-    name: str
-    timestamp: str
-    entry_id: str
-
-@dataclass
-class EntryUpdated:
-    name: str
-    timestamp: str
-    entry_id: str
-
-@dataclass
-class EntryDeleted:
-    name: str
-    timestamp: str
-    entry_id: str
 
 class EntryManager:
-    """
-    Центральный контроллер операций с записями хранилища.
+    """Coordinates encrypted CRUD operations for vault entries."""
 
-    Отвечает за:
-    - создание записи;
-    - получение одной записи;
-    - получение всех записей;
-    - обновление записи;
-    - удаление записи.
-
-    Пользовательские поля записи не хранятся в базе открытым текстом.
-    Они собираются в JSON, шифруются через AES-256-GCM и сохраняются
-    в поле encrypted_data.
-    """
+    DELETION_RETENTION_DAYS = 30
 
     def __init__(
         self,
@@ -59,408 +41,309 @@ class EntryManager:
         self.db = db
         self.key_manager = key_manager
         self.event_bus = event_bus
-
-        self.encryption_service = (
-            encryption_service
-            if encryption_service is not None
-            else AESGCMEncryptionService()
-        )
-
-        self.password_generator = (
-            password_generator
-            if password_generator is not None
-            else PasswordGenerator()
-        )
+        self.encryption_service = encryption_service or AESGCMEncryptionService()
+        self.password_generator = password_generator or PasswordGenerator()
 
     def create_entry(self, data_dict: dict[str, Any]) -> dict[str, Any]:
-        """
-        Создаёт новую запись хранилища.
-
-        В базу сохраняются только:
-        - id;
-        - encrypted_data;
-        - created_at;
-        - updated_at;
-        - tags.
-        """
-
-        self._validate_entry_data(data_dict)
+        prepared = self._normalize_entry_data(data_dict)
+        self._validate_entry_data(prepared)
 
         entry_id = str(uuid.uuid4())
         created_at = self._utc_now()
-        updated_at = created_at
-
-        prepared_data = dict(data_dict)
-        prepared_data["created_at"] = created_at
-        prepared_data["version"] = prepared_data.get("version", 1)
-
-        tags = prepared_data.get("tags", [])
-        tags_text = self._serialize_tags(tags)
-
+        prepared["created_at"] = created_at
+        prepared["version"] = int(prepared.get("version", 1))
         encrypted_data = self.encryption_service.encrypt_entry(
-            prepared_data,
+            prepared,
             self.key_manager,
             associated_data=entry_id.encode("utf-8"),
         )
 
         try:
-            self.db.execute(
-                """
-                INSERT INTO vault_entries (
-                    id,
-                    encrypted_data,
-                    created_at,
-                    updated_at,
-                    tags
+            with self._transaction(write=True):
+                self.db.execute(
+                    """
+                    INSERT INTO vault_entries (id, encrypted_data, created_at, updated_at, tags)
+                    VALUES (?, ?, ?, ?, ?);
+                    """,
+                    (
+                        entry_id,
+                        encrypted_data,
+                        created_at,
+                        created_at,
+                        self._serialize_tags(prepared["tags"]),
+                    ),
                 )
-                VALUES (?, ?, ?, ?, ?);
-                """,
-                (
-                    entry_id,
-                    encrypted_data,
-                    created_at,
-                    updated_at,
-                    tags_text,
-                ),
-            )
-            self._commit()
-
         except Exception as exc:
-            self._rollback()
-            raise EntryManagerError("Failed to create vault entry.") from exc
+            raise EntryManagerError("Vault operation could not be completed.") from exc
 
-        self._publish_event(
-            EntryCreated(
-                name="EntryCreated",
-                timestamp=now_utc(),
-                entry_id=entry_id,
-            )
-        )
-
+        self._publish_event(EntryCreated("EntryCreated", now_utc(), entry_id))
         entry = self.get_entry(entry_id)
         if entry is None:
-            raise EntryManagerError("Created entry could not be loaded.")
-
+            raise EntryManagerError("Vault operation could not be completed.")
         return entry
 
     def get_entry(self, entry_id: str) -> dict[str, Any] | None:
-        """
-        Возвращает одну запись по id.
-
-        При чтении encrypted_data расшифровывается обратно в словарь.
-        """
-
-        cursor = self.db.execute(
-            """
-            SELECT id, encrypted_data, created_at, updated_at, tags
-            FROM vault_entries
-            WHERE id = ?;
-            """,
-            (entry_id,),
-        )
-
-        row = cursor.fetchone()
-
-        if row is None:
-            return None
-
-        return self._row_to_entry(row)
+        try:
+            with self._transaction(write=False):
+                return self._get_entry(entry_id)
+        except EntryManagerError:
+            raise
+        except Exception as exc:
+            raise EntryManagerError("Vault operation could not be completed.") from exc
 
     def get_all_entries(self) -> list[dict[str, Any]]:
-        """
-        Возвращает все записи хранилища.
-
-        Каждая запись расшифровывается из encrypted_data.
-        """
-
-        cursor = self.db.execute(
-            """
-            SELECT id, encrypted_data, created_at, updated_at, tags
-            FROM vault_entries
-            ORDER BY updated_at DESC;
-            """
-        )
-
-        rows = cursor.fetchall()
-
-        entries: list[dict[str, Any]] = []
-
-        for row in rows:
-            entries.append(self._row_to_entry(row))
-
-        return entries
+        try:
+            with self._transaction(write=False):
+                rows = self.db.execute(
+                    """
+                    SELECT id, encrypted_data, created_at, updated_at, tags
+                    FROM vault_entries
+                    ORDER BY updated_at DESC;
+                    """
+                ).fetchall()
+                return [self._row_to_entry(row) for row in rows]
+        except Exception as exc:
+            raise EntryManagerError("Vault operation could not be completed.") from exc
 
     def update_entry(
         self,
         entry_id: str,
         data_dict: dict[str, Any],
     ) -> dict[str, Any]:
-        """
-        Обновляет существующую запись.
-
-        Старые данные расшифровываются, объединяются с новыми,
-        затем снова шифруются и сохраняются в encrypted_data.
-        """
-
-        current_entry = self.get_entry(entry_id)
-
-        if current_entry is None:
-            raise EntryManagerError("Vault entry was not found.")
-
-        updated_entry = dict(current_entry)
-        updated_entry.update(data_dict)
-
-        self._validate_entry_data(updated_entry)
-
-        created_at = current_entry.get("created_at", self._utc_now())
-        updated_at = self._utc_now()
-
-        updated_entry["created_at"] = created_at
-        updated_entry["updated_at"] = updated_at
-        updated_entry["version"] = updated_entry.get("version", 1)
-
-        tags = updated_entry.get("tags", [])
-        tags_text = self._serialize_tags(tags)
-
-        encrypted_data = self.encryption_service.encrypt_entry(
-            updated_entry,
-            self.key_manager,
-            associated_data=entry_id.encode("utf-8"),
-        )
-
         try:
-            self.db.execute(
-                """
-                UPDATE vault_entries
-                SET encrypted_data = ?,
-                    updated_at = ?,
-                    tags = ?
-                WHERE id = ?;
-                """,
-                (
-                    encrypted_data,
-                    updated_at,
-                    tags_text,
-                    entry_id,
-                ),
-            )
-            self._commit()
+            with self._transaction(write=True):
+                current = self._get_entry(entry_id)
+                if current is None:
+                    raise EntryManagerError("Vault operation could not be completed.")
 
+                merged = dict(current)
+                merged.update(data_dict)
+                prepared = self._normalize_entry_data(merged)
+                self._validate_entry_data(prepared)
+
+                updated_at = self._utc_now()
+                prepared["created_at"] = current["created_at"]
+                encrypted_data = self.encryption_service.encrypt_entry(
+                    prepared,
+                    self.key_manager,
+                    associated_data=entry_id.encode("utf-8"),
+                )
+                result = self.db.execute(
+                    """
+                    UPDATE vault_entries
+                    SET encrypted_data = ?, updated_at = ?, tags = ?
+                    WHERE id = ?;
+                    """,
+                    (
+                        encrypted_data,
+                        updated_at,
+                        self._serialize_tags(prepared["tags"]),
+                        entry_id,
+                    ),
+                )
+                if result.rowcount != 1:
+                    raise EntryManagerError("Vault operation could not be completed.")
+        except EntryManagerError:
+            raise
         except Exception as exc:
-            self._rollback()
-            raise EntryManagerError("Failed to update vault entry.") from exc
+            raise EntryManagerError("Vault operation could not be completed.") from exc
 
-        self._publish_event(
-            EntryUpdated(
-                name="EntryUpdated",
-                timestamp=now_utc(),
-                entry_id=entry_id,
-            )
-        )
+        self._publish_event(EntryUpdated("EntryUpdated", now_utc(), entry_id))
+        entry = self.get_entry(entry_id)
+        if entry is None:
+            raise EntryManagerError("Vault operation could not be completed.")
+        return entry
+
+    def delete_entry(self, entry_id: str, soft_delete: bool = True) -> bool:
+        try:
+            with self._transaction(write=True):
+                row = self.db.execute(
+                    """
+                    SELECT id, encrypted_data, created_at, updated_at, tags
+                    FROM vault_entries
+                    WHERE id = ?;
+                    """,
+                    (entry_id,),
+                ).fetchone()
+                if row is None:
+                    return False
+
+                if soft_delete:
+                    deleted_at = self._utc_now()
+                    expires_at = (
+                        datetime.now(timezone.utc)
+                        + timedelta(days=self.DELETION_RETENTION_DAYS)
+                    ).isoformat()
+                    self.db.execute(
+                        """
+                        INSERT INTO deleted_entries (
+                            id, encrypted_data, created_at, updated_at,
+                            deleted_at, expires_at, tags
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?);
+                        """,
+                        (
+                            self._value(row, "id", 0),
+                            self._value(row, "encrypted_data", 1),
+                            self._value(row, "created_at", 2),
+                            self._value(row, "updated_at", 3),
+                            deleted_at,
+                            expires_at,
+                            self._value(row, "tags", 4),
+                        ),
+                    )
+
+                result = self.db.execute(
+                    "DELETE FROM vault_entries WHERE id = ?;",
+                    (entry_id,),
+                )
+                if result.rowcount != 1:
+                    raise EntryManagerError("Vault operation could not be completed.")
+        except EntryManagerError:
+            raise
+        except Exception as exc:
+            raise EntryManagerError("Vault operation could not be completed.") from exc
+
+        self._publish_event(EntryDeleted("EntryDeleted", now_utc(), entry_id))
+        return True
+
+    def purge_expired_deleted_entries(self) -> int:
+        try:
+            with self._transaction(write=True):
+                result = self.db.execute(
+                    "DELETE FROM deleted_entries WHERE expires_at <= ?;",
+                    (self._utc_now(),),
+                )
+                return max(0, result.rowcount)
+        except Exception as exc:
+            raise EntryManagerError("Vault operation could not be completed.") from exc
+
+    def generate_password(self, **options) -> str:
+        return self.password_generator.generate(**options)
+
+    def get_clipboard_value(self, entry_id: str, field: str = "password") -> str:
+        if field not in {"password", "username"}:
+            raise EntryManagerError("Vault operation could not be completed.")
 
         entry = self.get_entry(entry_id)
         if entry is None:
-            raise EntryManagerError("Updated entry could not be loaded.")
+            raise EntryManagerError("Vault operation could not be completed.")
 
-        return entry
-
-    def delete_entry(
-        self,
-        entry_id: str,
-        soft_delete: bool = True,
-    ) -> bool:
-        """
-        Удаляет запись.
-
-        Если soft_delete=True, запись переносится в таблицу deleted_entries.
-        Если таблицы deleted_entries нет, выполняется обычное удаление.
-        """
-
-        current_entry = self.get_entry(entry_id)
-
-        if current_entry is None:
-            return False
-
-        try:
-            if soft_delete:
-                moved = self._try_move_to_deleted_entries(entry_id)
-
-                if not moved:
-                    self._delete_permanently(entry_id)
-            else:
-                self._delete_permanently(entry_id)
-
-            self._commit()
-
-        except Exception as exc:
-            self._rollback()
-            raise EntryManagerError("Failed to delete vault entry.") from exc
-
+        value = str(entry.get(field, ""))
         self._publish_event(
-            EntryDeleted(
-                name="EntryDeleted",
-                timestamp=now_utc(),
-                entry_id=entry_id,
-            )
+            ClipboardCopied("ClipboardCopied", now_utc(), entry_id, field)
         )
+        return value
 
-        return True
-
-    def generate_password(self, length: int = 20) -> str:
-        return self.password_generator.generate(length=length)
-
-    def _row_to_entry(self, row) -> dict[str, Any]:
-        entry_id = row[0]
-        encrypted_data = row[1]
-        created_at = row[2]
-        updated_at = row[3]
-        tags_text = row[4]
-
-        payload = self.encryption_service.decrypt_entry(
-            encrypted_data,
-            self.key_manager,
-            associated_data=entry_id.encode("utf-8"),
-        )
-
-        payload["id"] = entry_id
-        payload["created_at"] = payload.get("created_at", created_at)
-        payload["updated_at"] = updated_at
-        payload["tags"] = payload.get("tags", self._deserialize_tags(tags_text))
-
-        return payload
-
-    def _validate_entry_data(self, data_dict: dict[str, Any]) -> None:
-        title = str(data_dict.get("title", "")).strip()
-        password = str(data_dict.get("password", "")).strip()
-
-        if not title:
-            raise EntryManagerError("Entry title is required.")
-
-        if not password:
-            raise EntryManagerError("Entry password is required.")
-
-    def _serialize_tags(self, tags: Any) -> str:
-        if tags is None:
-            return "[]"
-
-        if isinstance(tags, str):
-            tags_list = [
-                tag.strip()
-                for tag in tags.split(",")
-                if tag.strip()
-            ]
-            return json.dumps(tags_list, ensure_ascii=False)
-
-        if isinstance(tags, list):
-            return json.dumps(tags, ensure_ascii=False)
-
-        return json.dumps([], ensure_ascii=False)
-
-    def _deserialize_tags(self, tags_text: str | None) -> list[str]:
-        if not tags_text:
-            return []
-
-        try:
-            tags = json.loads(tags_text)
-        except json.JSONDecodeError:
-            return [
-                tag.strip()
-                for tag in tags_text.split(",")
-                if tag.strip()
-            ]
-
-        if isinstance(tags, list):
-            return tags
-
-        return []
-
-    def _try_move_to_deleted_entries(self, entry_id: str) -> bool:
-        """
-        Пытается выполнить мягкое удаление.
-
-        Если таблица deleted_entries ещё не создана, возвращает False.
-        Тогда запись будет удалена обычным способом.
-        """
-
-        cursor = self.db.execute(
+    def _get_entry(self, entry_id: str) -> dict[str, Any] | None:
+        row = self.db.execute(
             """
             SELECT id, encrypted_data, created_at, updated_at, tags
             FROM vault_entries
             WHERE id = ?;
             """,
             (entry_id,),
+        ).fetchone()
+        return None if row is None else self._row_to_entry(row)
+
+    def _row_to_entry(self, row) -> dict[str, Any]:
+        entry_id = str(self._value(row, "id", 0))
+        payload = self.encryption_service.decrypt_entry(
+            self._value(row, "encrypted_data", 1),
+            self.key_manager,
+            associated_data=entry_id.encode("utf-8"),
         )
+        payload["id"] = entry_id
+        payload["created_at"] = payload.get(
+            "created_at", self._value(row, "created_at", 2)
+        )
+        payload["updated_at"] = self._value(row, "updated_at", 3)
+        if not isinstance(payload.get("tags"), list):
+            payload["tags"] = self._deserialize_tags(self._value(row, "tags", 4))
+        return payload
 
-        row = cursor.fetchone()
+    def _normalize_entry_data(self, data: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(data, dict):
+            raise EntryManagerError("Entry data must be a dictionary.")
 
-        if row is None:
-            return False
+        tags = data.get("tags", [])
+        if isinstance(tags, str):
+            tags = [tag.strip() for tag in tags.split(",") if tag.strip()]
+        if not isinstance(tags, list):
+            raise EntryManagerError("Tags must be a list or comma-separated text.")
+
+        sharing_metadata = data.get("sharing_metadata", {})
+        if sharing_metadata is None:
+            sharing_metadata = {}
+        if not isinstance(sharing_metadata, dict):
+            raise EntryManagerError("Sharing metadata must be a dictionary.")
+
+        return {
+            "title": str(data.get("title", "")).strip(),
+            "username": str(data.get("username", "")).strip(),
+            "password": str(data.get("password", "")),
+            "url": str(data.get("url", "")).strip(),
+            "notes": str(data.get("notes", "")),
+            "category": str(data.get("category", "")).strip(),
+            "tags": [str(tag).strip() for tag in tags if str(tag).strip()],
+            "totp_secret": str(data.get("totp_secret", "")).strip(),
+            "sharing_metadata": sharing_metadata,
+            "created_at": str(data.get("created_at", "")),
+            "version": int(data.get("version", 1)),
+        }
+
+    def _validate_entry_data(self, data: dict[str, Any]) -> None:
+        if not data["title"]:
+            raise EntryManagerError("Entry title is required.")
+        if not data["password"].strip():
+            raise EntryManagerError("Entry password is required.")
+        if not is_valid_url(data["url"]):
+            raise EntryManagerError("Entry URL is invalid.")
+        if data["version"] < 1:
+            raise EntryManagerError("Entry version is invalid.")
+
+    @contextmanager
+    def _transaction(self, write: bool) -> Iterator[None]:
+        transaction = getattr(self.db, "transaction", None)
+        if callable(transaction):
+            with transaction(write=write):
+                yield
+            return
 
         try:
-            deleted_at = self._utc_now()
-            expires_at = (
-                datetime.now(timezone.utc) + timedelta(days=30)
-            ).isoformat()
-
-            self.db.execute(
-                """
-                INSERT INTO deleted_entries (
-                    id,
-                    encrypted_data,
-                    created_at,
-                    updated_at,
-                    deleted_at,
-                    expires_at,
-                    tags
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?);
-                """,
-                (
-                    row[0],
-                    row[1],
-                    row[2],
-                    row[3],
-                    deleted_at,
-                    expires_at,
-                    row[4],
-                ),
-            )
-
-            self._delete_permanently(entry_id)
-
-            return True
-
+            yield
         except Exception:
-            return False
+            if hasattr(self.db, "rollback"):
+                self.db.rollback()
+            raise
+        else:
+            if hasattr(self.db, "commit"):
+                self.db.commit()
 
-    def _delete_permanently(self, entry_id: str) -> None:
-        self.db.execute(
-            """
-            DELETE FROM vault_entries
-            WHERE id = ?;
-            """,
-            (entry_id,),
-        )
-
-    def _publish_event(self, event: Any) -> None:
+    def _publish_event(self, event) -> None:
         if self.event_bus is not None:
             self.event_bus.publish(event)
 
-    def _commit(self) -> None:
-        if hasattr(self.db, "commit"):
-            self.db.commit()
-            return
+    @staticmethod
+    def _serialize_tags(tags: list[str]) -> str:
+        return json.dumps(tags, ensure_ascii=False, separators=(",", ":"))
 
-        if hasattr(self.db, "_connection"):
-            self.db._connection.commit()
+    @staticmethod
+    def _deserialize_tags(tags_text: str | None) -> list[str]:
+        if not tags_text:
+            return []
+        try:
+            value = json.loads(tags_text)
+        except json.JSONDecodeError:
+            value = [tag.strip() for tag in tags_text.split(",") if tag.strip()]
+        return value if isinstance(value, list) else []
 
-    def _rollback(self) -> None:
-        if hasattr(self.db, "rollback"):
-            self.db.rollback()
-            return
+    @staticmethod
+    def _value(row, name: str, index: int):
+        try:
+            return row[name]
+        except (IndexError, KeyError, TypeError):
+            return row[index]
 
-        if hasattr(self.db, "_connection"):
-            self.db._connection.rollback()
-
-    def _utc_now(self) -> str:
+    @staticmethod
+    def _utc_now() -> str:
         return datetime.now(timezone.utc).isoformat()

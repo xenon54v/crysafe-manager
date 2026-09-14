@@ -303,7 +303,7 @@ def test_create_entry_requires_password():
 
 
 def test_database_table_does_not_have_plaintext_columns():
-    manager, db = create_manager()
+    _manager, db = create_manager()
 
     cursor = db.execute("PRAGMA table_info(vault_entries);")
     columns = cursor.fetchall()
@@ -324,6 +324,7 @@ def test_database_table_does_not_have_plaintext_columns():
     assert "notes" not in column_names
 
     db.close()
+
 
 def test_soft_delete_moves_entry_to_deleted_entries():
     manager, db = create_manager()

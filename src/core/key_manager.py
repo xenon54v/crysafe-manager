@@ -1,7 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass
-from typing import Optional
 
 from src.core.crypto.key_derivation import (
     Argon2Settings,
@@ -9,26 +9,28 @@ from src.core.crypto.key_derivation import (
     KeyDerivationService,
     PBKDF2Settings,
 )
-from src.core.os_keychain import OSKeychain
 from src.core.crypto.key_storage import KeyStorage
+from src.core.os_keychain import OSKeychain
+
 
 @dataclass(frozen=True)
 class DerivedKey:
     key: bytes
     salt: bytes
 
+
 class KeyManager:
     def __init__(
-            self,
-            argon2_settings: Argon2Settings | None = None,
-            pbkdf2_settings: PBKDF2Settings | None = None,
-            key_cache_ttl_seconds: int = 3600,
+        self,
+        argon2_settings: Argon2Settings | None = None,
+        pbkdf2_settings: PBKDF2Settings | None = None,
+        key_cache_ttl_seconds: int = 3600,
     ) -> None:
         self._kdf = KeyDerivationService(argon2_settings, pbkdf2_settings)
         self._storage = KeyStorage(ttl_seconds=key_cache_ttl_seconds)
         self._os_keychain = OSKeychain()
-        self._active_key: Optional[bytes] = None
-        self._active_salt: Optional[bytes] = None
+        self._active_key: bytes | None = None
+        self._active_salt: bytes | None = None
 
     def _build_key_params(self) -> str:
         return json.dumps(
@@ -51,9 +53,12 @@ class KeyManager:
             ensure_ascii=False,
         )
 
-    def is_master_password_set(self) -> bool:
-        record = self.key_store.get_key("master_password")
-        return record is not None
+    def is_master_password_set(self, db) -> bool:
+        row = db.execute(
+            "SELECT 1 FROM key_store WHERE key_type = ? LIMIT 1;",
+            ("master",),
+        ).fetchone()
+        return row is not None
 
     # Password hashing / verification
 
@@ -100,7 +105,7 @@ class KeyManager:
             WHERE key_type = ?
             LIMIT 1;
             """,
-            ("master",)
+            ("master",),
         ).fetchone()
 
         if row is None:
@@ -112,11 +117,13 @@ class KeyManager:
                 INSERT INTO key_store (key_type, salt, hash, params)
                 VALUES (?, ?, ?, ?);
                 """,
-                ("master", salt, auth_hash, self._build_key_params())
+                ("master", salt, auth_hash, self._build_key_params()),
             )
         else:
             salt = row[0]
             stored_hash = row[1]
+            if isinstance(stored_hash, bytes):
+                stored_hash = stored_hash.decode("utf-8")
             params = row[2]
 
             if not params:
@@ -128,19 +135,17 @@ class KeyManager:
                     SET params = ?
                     WHERE key_type = ?;
                     """,
-                    (params, "master")
+                    (params, "master"),
                 )
             try:
-                parsed = json.loads(params)
-            except Exception:
-                raise ValueError("Повреждены параметры ключа")
+                json.loads(params)
+            except (json.JSONDecodeError, TypeError) as exc:
+                raise ValueError("Повреждены параметры ключа") from exc
 
             if not self.verify_password(password, stored_hash):
                 raise ValueError("Неверный мастер-пароль")
 
-        self._active_salt = salt
-        self._active_key = self.derive_key(password, salt)
-        self._storage.save(self._active_key)
+        self.activate_key(self.derive_key(password, salt), salt)
         return self._active_key
 
     def get_active_key(self) -> bytes:
@@ -166,6 +171,16 @@ class KeyManager:
             raise RuntimeError("Нет активного ключа для сохранения в памяти.")
 
         self._storage.save(self._active_key)
+
+    def activate_key(self, key: bytes, salt: bytes) -> None:
+        if not isinstance(key, bytes) or len(key) != 32:
+            raise ValueError("Encryption key must contain 32 bytes.")
+        if not isinstance(salt, bytes) or not salt:
+            raise ValueError("Encryption salt must not be empty.")
+
+        self._active_key = key
+        self._active_salt = salt
+        self._storage.save(key)
 
     def load_key(self) -> bytes:
         return self._storage.load()

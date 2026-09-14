@@ -1,77 +1,63 @@
-from datetime import datetime
+from __future__ import annotations
 
-from src.core.vault.encryption_service import AESGCMEncryptionService
-from src.core.crypto.placeholder import zero_bytes
+from dataclasses import dataclass
+from typing import Any
+
 from src.core.key_manager import KeyManager
-from src.core.crypto.placeholder import AES256Placeholder, zero_bytes
+from src.core.vault.encryption_service import AESGCMEncryptionService
+from src.core.vault.entry_manager import EntryManager
+
+
+@dataclass(frozen=True)
+class _StaticKeyManager:
+    key: bytes
+
+    def get_active_key(self) -> bytes:
+        return self.key
+
 
 class VaultRepository:
-    def __init__(self, db):
+    """Compatibility facade around the Sprint 3 encrypted entry controller."""
+
+    def __init__(self, db, key_manager: KeyManager | None = None) -> None:
         self.db = db
+        self.key_manager = key_manager or KeyManager()
         self.crypto = AESGCMEncryptionService()
-        self.key_manager = KeyManager()
+        self.entries = EntryManager(
+            db, self.key_manager, encryption_service=self.crypto
+        )
 
     def count_entries(self) -> int:
-        cursor = self.db.execute("SELECT COUNT(*) FROM vault_entries;")
-        return cursor.fetchone()[0]
+        row = self.db.execute("SELECT COUNT(*) FROM vault_entries;").fetchone()
+        return int(row[0])
 
     def insert_sample_entries(self, master_password: str) -> None:
         if self.count_entries() > 0:
             return
-
         self.key_manager.unlock_with_password(self.db, master_password)
-        now = datetime.now().isoformat()
 
-        samples = [
+        samples = (
             {
                 "title": "Google",
-                "username": "ksenia@gmail.com",
-                "password": "mypassword123",
+                "username": "student@example.com",
+                "password": "ExampleGooglePassword7!",
                 "url": "https://google.com",
-                "notes": "Личный аккаунт",
-                "tags": "mail,personal",
+                "notes": "Personal account",
+                "category": "Personal",
+                "tags": ["mail", "personal"],
             },
             {
                 "title": "GitHub",
-                "username": "ksenon54",
-                "password": "github_secret_2025",
+                "username": "student",
+                "password": "ExampleGitHubPassword8!",
                 "url": "https://github.com",
-                "notes": "Учебный репозиторий",
-                "tags": "code,study",
+                "notes": "Study repository",
+                "category": "Study",
+                "tags": ["code", "study"],
             },
-            {
-                "title": "Telegram",
-                "username": "@ksenia",
-                "password": "telegram_demo_pass",
-                "url": "https://web.telegram.org",
-                "notes": "Мессенджер",
-                "tags": "chat",
-            },
-        ]
-
-        for item in samples:
-            encrypted_password = self.crypto.encrypt(
-                item["password"].encode("utf-8"),
-                self.key_manager,
-            )
-
-            self.db.execute(
-                """
-                INSERT INTO vault_entries
-                (title, username, encrypted_password, url, notes, tags, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?);
-                """,
-                (
-                    item["title"],
-                    item["username"],
-                    encrypted_password,
-                    item["url"],
-                    item["notes"],
-                    item["tags"],
-                    now,
-                    now,
-                ),
-            )
+        )
+        for sample in samples:
+            self.entries.create_entry(sample)
 
     def add_entry(
         self,
@@ -84,68 +70,29 @@ class VaultRepository:
         tags: str,
     ) -> None:
         self.key_manager.unlock_with_password(self.db, master_password)
-
-        encrypted_password = self.crypto.encrypt(
-            password.encode("utf-8"),
-            self.key_manager,
+        self.entries.create_entry(
+            {
+                "title": title,
+                "username": username,
+                "password": password,
+                "url": url,
+                "notes": notes,
+                "tags": tags,
+            }
         )
 
-        now = datetime.now().isoformat()
+    def get_entries_for_table(self) -> list[dict[str, Any]]:
+        return self.entries.get_all_entries()
 
-        self.db.execute(
-            """
-            INSERT INTO vault_entries
-            (title, username, encrypted_password, url, notes, tags, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
-            """,
-            (
-                title,
-                username,
-                encrypted_password,
-                url,
-                notes,
-                tags,
-                now,
-                now,
-            ),
-        )
+    def delete_entry(self, entry_id: str) -> bool:
+        return self.entries.delete_entry(str(entry_id), soft_delete=True)
 
-    def get_entries_for_table(self):
-        cursor = self.db.execute(
-            """
-            SELECT id, title, username, url
-            FROM vault_entries
-            ORDER BY id;
-            """
-        )
-        return cursor.fetchall()
-
-    def delete_entry(self, entry_id: int) -> bool:
-        cursor = self.db.execute(
-            """
-            DELETE FROM vault_entries
-            WHERE id = ?;
-            """,
-            (entry_id,),
-        )
-
-        return cursor.rowcount > 0
-
-    def get_entry_by_id(self, entry_id: int):
-        cursor = self.db.execute(
-            """
-            SELECT id, title, username, encrypted_password, url, notes, tags
-            FROM vault_entries
-            WHERE id = ?;
-            """,
-            (entry_id,),
-        )
-
-        return cursor.fetchone()
+    def get_entry_by_id(self, entry_id: str) -> dict[str, Any] | None:
+        return self.entries.get_entry(str(entry_id))
 
     def update_entry(
         self,
-        entry_id: int,
+        entry_id: str,
         master_password: str,
         title: str,
         username: str,
@@ -155,113 +102,81 @@ class VaultRepository:
         tags: str,
     ) -> bool:
         self.key_manager.unlock_with_password(self.db, master_password)
-
-        encrypted_password = self.crypto.encrypt(
-            password.encode("utf-8"),
-            self.key_manager,
+        self.entries.update_entry(
+            str(entry_id),
+            {
+                "title": title,
+                "username": username,
+                "password": password,
+                "url": url,
+                "notes": notes,
+                "tags": tags,
+            },
         )
+        return True
 
-        now = datetime.now().isoformat()
-
-        cursor = self.db.execute(
-            """
-            UPDATE vault_entries
-            SET title = ?,
-                username = ?,
-                encrypted_password = ?,
-                url = ?,
-                notes = ?,
-                tags = ?,
-                updated_at = ?
-            WHERE id = ?;
-            """,
-            (
-                title,
-                username,
-                encrypted_password,
-                url,
-                notes,
-                tags,
-                now,
-                entry_id,
-            ),
-        )
-
-        return cursor.rowcount > 0
-
-    def change_master_password(
-        self,
-        old_password: str,
-        new_password: str,
-    ) -> bool:
+    def change_master_password(self, old_password: str, new_password: str) -> bool:
         self.key_manager.unlock_with_password(self.db, old_password)
 
-        cursor = self.db.execute(
-            """
-            SELECT id, encrypted_password
-            FROM vault_entries
-            ORDER BY id;
-            """
-        )
-        rows = cursor.fetchall()
-
-        decrypted_entries = []
-
-        for entry_id, encrypted_password in rows:
-            decrypted_password = bytearray(
-                self.crypto.decrypt(
-                    encrypted_password,
-                    self.key_manager,
-                )
+        encrypted_rows: list[tuple[str, str, bytes]] = []
+        for table in ("vault_entries", "deleted_entries"):
+            rows = self.db.execute(
+                f"SELECT id, encrypted_data FROM {table} ORDER BY id;"
+            ).fetchall()
+            encrypted_rows.extend(
+                (table, str(row["id"]), row["encrypted_data"]) for row in rows
             )
 
-            decrypted_entries.append((entry_id, decrypted_password))
+        plaintext_rows = [
+            (
+                table,
+                entry_id,
+                self.crypto.decrypt_entry(
+                    encrypted_data,
+                    self.key_manager,
+                    associated_data=entry_id.encode("utf-8"),
+                ),
+            )
+            for table, entry_id, encrypted_data in encrypted_rows
+        ]
 
         new_salt = self.key_manager.generate_salt()
-        new_auth_hash = self.key_manager.create_auth_hash(new_password).hash
         new_key = self.key_manager.derive_key(new_password, new_salt)
-
-        self.key_manager.clear_active_key()
-        self.key_manager._active_salt = new_salt
-        self.key_manager._active_key = new_key
-        self.key_manager.store_key()
-
-        for entry_id, decrypted_password in decrypted_entries:
-            new_encrypted_password = self.crypto.encrypt(
-                bytes(decrypted_password),
-                self.key_manager,
+        new_auth_hash = self.key_manager.create_auth_hash(new_password).hash
+        temporary_key_manager = _StaticKeyManager(new_key)
+        reencrypted_rows = [
+            (
+                table,
+                entry_id,
+                self.crypto.encrypt_entry(
+                    payload,
+                    temporary_key_manager,
+                    associated_data=entry_id.encode("utf-8"),
+                ),
             )
+            for table, entry_id, payload in plaintext_rows
+        ]
 
-            zero_bytes(decrypted_password)
-
+        with self.db.transaction():
+            for table, entry_id, encrypted_data in reencrypted_rows:
+                self.db.execute(
+                    f"UPDATE {table} SET encrypted_data = ? WHERE id = ?;",
+                    (encrypted_data, entry_id),
+                )
             self.db.execute(
                 """
-                UPDATE vault_entries
-                SET encrypted_password = ?,
-                    updated_at = ?
-                WHERE id = ?;
+                UPDATE key_store
+                SET salt = ?, hash = ?, params = ?, version = version + 1
+                WHERE key_type = ?;
                 """,
                 (
-                    new_encrypted_password,
-                    datetime.now().isoformat(),
-                    entry_id,
+                    new_salt,
+                    new_auth_hash,
+                    self.key_manager._build_key_params(),
+                    "master",
                 ),
             )
 
-        self.db.execute(
-            """
-            UPDATE key_store
-            SET salt = ?,
-                hash = ?,
-                params = ?
-            WHERE key_type = ?;
-            """,
-            (
-                new_salt,
-                new_auth_hash,
-                self.key_manager._build_key_params(),
-                "master",
-            ),
-        )
-
+        self.key_manager.activate_key(new_key, new_salt)
+        plaintext_rows.clear()
         return True

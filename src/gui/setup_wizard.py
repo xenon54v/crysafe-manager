@@ -1,14 +1,16 @@
-﻿from dataclasses import dataclass
+from dataclasses import dataclass
 from pathlib import Path
 from tkinter import filedialog, messagebox
-from src.core.config import ConfigManager
-from src.core.crypto.key_derivation import validate_password, get_password_rule_status
+
 import customtkinter as ctk
 
+from src.core.config import ConfigManager
+from src.core.crypto.key_derivation import get_password_rule_status, validate_password
 from src.gui.widgets.password_entry import PasswordEntry
 
 PINK = "#d98ca3"
 PINK_HOVER = "#c97c93"
+
 
 @dataclass(frozen=True)
 class SetupResult:
@@ -16,9 +18,11 @@ class SetupResult:
     db_path: Path
     enc_scheme: str
 
+
 @dataclass(frozen=True)
 class LoginResult:
     master_password: str
+
 
 class SetupWizard(ctk.CTkToplevel):
     def __init__(self, master=None):
@@ -49,7 +53,7 @@ class SetupWizard(ctk.CTkToplevel):
             state="disabled",
             fg_color=PINK,
             hover_color=PINK_HOVER,
-            text_color="white"
+            text_color="white",
         )
         self.back_button.grid(row=0, column=0, padx=(0, 10))
 
@@ -60,7 +64,7 @@ class SetupWizard(ctk.CTkToplevel):
             command=self._cancel,
             fg_color=PINK,
             hover_color=PINK_HOVER,
-            text_color="white"
+            text_color="white",
         )
         self.cancel_button.grid(row=0, column=2, padx=(0, 10))
 
@@ -71,7 +75,7 @@ class SetupWizard(ctk.CTkToplevel):
             command=self._next,
             fg_color=PINK,
             hover_color=PINK_HOVER,
-            text_color="white"
+            text_color="white",
         )
         self.next_button.grid(row=0, column=3)
 
@@ -106,7 +110,7 @@ class SetupWizard(ctk.CTkToplevel):
         ctk.CTkLabel(
             self.content,
             text="Создание мастер-пароля",
-            font=ctk.CTkFont(size=20, weight="bold")
+            font=ctk.CTkFont(size=20, weight="bold"),
         ).pack(anchor="w", pady=(10, 14))
 
         ctk.CTkLabel(self.content, text="Мастер-пароль").pack(anchor="w", pady=(0, 5))
@@ -116,25 +120,27 @@ class SetupWizard(ctk.CTkToplevel):
         ctk.CTkLabel(
             self.content,
             text="Требования к паролю:",
-            font=ctk.CTkFont(size=14, weight="bold")
+            font=ctk.CTkFont(size=14, weight="bold"),
         ).pack(anchor="w", pady=(6, 6))
 
         self.rules_frame = ctk.CTkFrame(self.content, fg_color="transparent")
         self.rules_frame.pack(fill="x", pady=(0, 14))
 
         self.rule_labels = {}
-        for rule_text in get_password_rule_status("").keys():
+        for rule_text in get_password_rule_status(""):
             label = ctk.CTkLabel(
                 self.rules_frame,
                 text=f"- {rule_text}",
                 text_color="#d96c6c",
                 anchor="w",
-                font=ctk.CTkFont(size=13)
+                font=ctk.CTkFont(size=13),
             )
             label.pack(anchor="w", pady=1)
             self.rule_labels[rule_text] = label
 
-        ctk.CTkLabel(self.content, text="Подтверждение пароля").pack(anchor="w", pady=(0, 5))
+        ctk.CTkLabel(self.content, text="Подтверждение пароля").pack(
+            anchor="w", pady=(0, 5)
+        )
         self.pw2 = PasswordEntry(self.content)
         self.pw2.pack(fill="x")
 
@@ -142,7 +148,6 @@ class SetupWizard(ctk.CTkToplevel):
         self._update_password_rules()
 
         self.pw1.focus()
-
 
     def _bind_password_tracking(self):
         self.pw1.entry.bind("<KeyRelease>", lambda event: self._update_password_rules())
@@ -162,13 +167,15 @@ class SetupWizard(ctk.CTkToplevel):
         ctk.CTkLabel(
             self.content,
             text="Select Database Location",
-            font=ctk.CTkFont(size=20, weight="bold")
+            font=ctk.CTkFont(size=20, weight="bold"),
         ).pack(anchor="w", pady=(10, 20))
 
         default_db_path = ConfigManager().load().db_path
         self.db_var = ctk.StringVar(value=str(default_db_path))
 
-        ctk.CTkLabel(self.content, text="Database file path").pack(anchor="w", pady=(0, 5))
+        ctk.CTkLabel(self.content, text="Database file path").pack(
+            anchor="w", pady=(0, 5)
+        )
 
         row = ctk.CTkFrame(self.content, fg_color="transparent")
         row.pack(fill="x")
@@ -183,7 +190,7 @@ class SetupWizard(ctk.CTkToplevel):
             command=self._browse_db,
             fg_color=PINK,
             hover_color=PINK_HOVER,
-            text_color="white"
+            text_color="white",
         )
         browse_btn.pack(side="right")
 
@@ -191,26 +198,28 @@ class SetupWizard(ctk.CTkToplevel):
         ctk.CTkLabel(
             self.content,
             text="Encryption Settings",
-            font=ctk.CTkFont(size=20, weight="bold")
+            font=ctk.CTkFont(size=20, weight="bold"),
         ).pack(anchor="w", pady=(10, 20))
 
-        ctk.CTkLabel(self.content, text="Encryption scheme").pack(anchor="w", pady=(0, 5))
-        self.enc_var = ctk.StringVar(value="XOR_PLACEHOLDER")
+        ctk.CTkLabel(self.content, text="Encryption scheme").pack(
+            anchor="w", pady=(0, 5)
+        )
+        self.enc_var = ctk.StringVar(value="AES-256-GCM")
         self.enc_menu = ctk.CTkOptionMenu(
             self.content,
-            values=["XOR_PLACEHOLDER"],
+            values=["AES-256-GCM"],
             variable=self.enc_var,
             fg_color=PINK,
             button_color=PINK,
             button_hover_color=PINK_HOVER,
-            text_color="white"
+            text_color="white",
         )
         self.enc_menu.pack(anchor="w")
 
         ctk.CTkLabel(
             self.content,
-            text="Sprint 1 placeholder. AES-GCM will be added later.",
-            text_color="gray"
+            text="Each vault entry is encrypted independently and authenticated.",
+            text_color="gray",
         ).pack(anchor="w", pady=(20, 0))
 
     def _next(self):
@@ -259,7 +268,7 @@ class SetupWizard(ctk.CTkToplevel):
         filename = filedialog.asksaveasfilename(
             title="Choose database file",
             defaultextension=".db",
-            filetypes=[("SQLite DB", "*.db"), ("All files", "*.*")]
+            filetypes=[("SQLite DB", "*.db"), ("All files", "*.*")],
         )
         if filename:
             self.db_var.set(filename)
@@ -268,9 +277,10 @@ class SetupWizard(ctk.CTkToplevel):
         self._result = SetupResult(
             master_password=self.pw1.get(),
             db_path=Path(self.db_var.get().strip()),
-            enc_scheme=self.enc_var.get()
+            enc_scheme=self.enc_var.get(),
         )
         self.destroy()
+
 
 class LoginDialog(ctk.CTkToplevel):
     def __init__(self, master=None):
@@ -291,7 +301,7 @@ class LoginDialog(ctk.CTkToplevel):
         ctk.CTkLabel(
             frame,
             text="Вход в CryptoSafe Manager",
-            font=ctk.CTkFont(size=20, weight="bold")
+            font=ctk.CTkFont(size=20, weight="bold"),
         ).pack(anchor="w", pady=(10, 18))
 
         ctk.CTkLabel(frame, text="Введите мастер-пароль").pack(anchor="w", pady=(0, 5))
@@ -309,7 +319,7 @@ class LoginDialog(ctk.CTkToplevel):
             command=self._cancel,
             fg_color=PINK,
             hover_color=PINK_HOVER,
-            text_color="white"
+            text_color="white",
         )
         self.cancel_button.pack(side="right", padx=(10, 0))
 
@@ -320,7 +330,7 @@ class LoginDialog(ctk.CTkToplevel):
             command=self._login,
             fg_color=PINK,
             hover_color=PINK_HOVER,
-            text_color="white"
+            text_color="white",
         )
         self.login_button.pack(side="right")
 

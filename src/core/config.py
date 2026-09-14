@@ -1,9 +1,9 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-import os
 
 
 class Environment(str, Enum):
@@ -13,9 +13,9 @@ class Environment(str, Enum):
 
 @dataclass(frozen=True)
 class EncryptionSettings:
-    scheme: str = "XOR_PLACEHOLDER"   # Sprint 1 placeholder
-    kdf: str = "PLACEHOLDER_KDF"      # Sprint 1 placeholder
-    kdf_params: dict | None = None    # future-ready
+    scheme: str = "AES-256-GCM"
+    kdf: str = "PBKDF2-HMAC-SHA256"
+    kdf_params: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -27,25 +27,38 @@ class AppConfig:
 
 
 class ConfigManager:
-
     def __init__(self, env: Environment | None = None) -> None:
         self._env = env or self._detect_env()
 
     def _detect_env(self) -> Environment:
         raw = os.getenv("CRYPTOSAFE_ENV", Environment.DEVELOPMENT.value).lower()
-        return Environment.PRODUCTION if raw == Environment.PRODUCTION.value else Environment.DEVELOPMENT
+        return (
+            Environment.PRODUCTION
+            if raw == Environment.PRODUCTION.value
+            else Environment.DEVELOPMENT
+        )
 
     def load(self) -> AppConfig:
         project_root = Path(__file__).resolve().parents[2]
-        default_db = project_root / "data" / (
-            "cryptosafe_dev.db" if self._env == Environment.DEVELOPMENT else "cryptosafe.db"
+        default_db = (
+            project_root
+            / "data"
+            / (
+                "cryptosafe_dev.db"
+                if self._env == Environment.DEVELOPMENT
+                else "cryptosafe.db"
+            )
         )
 
-        db_path = Path(os.getenv("CRYPTOSAFE_DB_PATH", str(default_db))).expanduser().resolve()
+        db_path = (
+            Path(os.getenv("CRYPTOSAFE_DB_PATH", str(default_db)))
+            .expanduser()
+            .resolve()
+        )
 
         enc = EncryptionSettings(
-            scheme=os.getenv("CRYPTOSAFE_ENC_SCHEME", "XOR_PLACEHOLDER"),
-            kdf=os.getenv("CRYPTOSAFE_KDF", "PLACEHOLDER_KDF"),
+            scheme=os.getenv("CRYPTOSAFE_ENC_SCHEME", "AES-256-GCM"),
+            kdf=os.getenv("CRYPTOSAFE_KDF", "PBKDF2-HMAC-SHA256"),
             kdf_params=None,
         )
 
@@ -54,4 +67,6 @@ class ConfigManager:
             "theme": os.getenv("CRYPTOSAFE_THEME", "system"),
         }
 
-        return AppConfig(env=self._env, db_path=db_path, encryption=enc, user_prefs=prefs)
+        return AppConfig(
+            env=self._env, db_path=db_path, encryption=enc, user_prefs=prefs
+        )
