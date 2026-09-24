@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+
 from src.core.crypto.key_derivation import (
     Argon2Settings,
     AuthHashResult,
@@ -89,6 +92,21 @@ class KeyManager:
 
         purpose_password = f"{purpose}:{password}"
         return self.derive_key(purpose_password, salt)
+
+    def derive_subkey(self, purpose: str, length: int = 32) -> bytes:
+        """Derive a domain-separated session key from the active master key."""
+        if not purpose or not purpose.strip():
+            raise ValueError("Key purpose must not be empty.")
+        if not 16 <= length <= 64:
+            raise ValueError("Derived key length must be between 16 and 64 bytes.")
+
+        active_key = self.get_active_key()
+        return HKDF(
+            algorithm=hashes.SHA256(),
+            length=length,
+            salt=self.active_salt,
+            info=f"CryptoSafe Manager:{purpose}:v1".encode(),
+        ).derive(active_key)
 
     def derive_key_bundle(self, password: str) -> DerivedKey:
         salt = self.generate_salt()

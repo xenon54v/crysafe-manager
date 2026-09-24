@@ -13,6 +13,7 @@ from src.core.events import (
     EntryDeleted,
     EntryUpdated,
     EventBus,
+    VaultAccessed,
     now_utc,
 )
 from src.core.key_manager import KeyManager
@@ -77,7 +78,8 @@ class EntryManager:
             raise EntryManagerError("Vault operation could not be completed.") from exc
 
         self._publish_event(EntryCreated("EntryCreated", now_utc(), entry_id))
-        entry = self.get_entry(entry_id)
+        with self._transaction(write=False):
+            entry = self._get_entry(entry_id)
         if entry is None:
             raise EntryManagerError("Vault operation could not be completed.")
         return entry
@@ -85,7 +87,12 @@ class EntryManager:
     def get_entry(self, entry_id: str) -> dict[str, Any] | None:
         try:
             with self._transaction(write=False):
-                return self._get_entry(entry_id)
+                entry = self._get_entry(entry_id)
+            if entry is not None:
+                self._publish_event(
+                    VaultAccessed("VaultAccessed", now_utc(), "read", entry_id)
+                )
+            return entry
         except EntryManagerError:
             raise
         except Exception as exc:
@@ -101,7 +108,9 @@ class EntryManager:
                     ORDER BY updated_at DESC;
                     """
                 ).fetchall()
-                return [self._row_to_entry(row) for row in rows]
+                entries = [self._row_to_entry(row) for row in rows]
+            self._publish_event(VaultAccessed("VaultAccessed", now_utc(), "list", None))
+            return entries
         except Exception as exc:
             raise EntryManagerError("Vault operation could not be completed.") from exc
 
@@ -149,7 +158,8 @@ class EntryManager:
             raise EntryManagerError("Vault operation could not be completed.") from exc
 
         self._publish_event(EntryUpdated("EntryUpdated", now_utc(), entry_id))
-        entry = self.get_entry(entry_id)
+        with self._transaction(write=False):
+            entry = self._get_entry(entry_id)
         if entry is None:
             raise EntryManagerError("Vault operation could not be completed.")
         return entry

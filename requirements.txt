@@ -6,5 +6,6 @@ keyring
 pyperclip
 pystray
 Pillow
+reportlab>=4.0
 pywin32; platform_system == "Windows"
 pyobjc-framework-Cocoa; platform_system == "Darwin"

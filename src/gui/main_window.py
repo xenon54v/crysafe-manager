@@ -6,6 +6,13 @@ from datetime import datetime, timedelta, timezone
 
 import customtkinter as ctk
 
+from src.core.audit import (
+    AuditConfig,
+    AuditEventBridge,
+    AuditExportScheduler,
+    AuditLogExporter,
+    AuditLogger,
+)
 from src.core.clipboard import (
     ClipboardConfig,
     ClipboardService,
@@ -18,7 +25,11 @@ from src.core.clipboard.clipboard_monitor import ClipboardMonitor
 from src.core.config import ConfigManager
 from src.core.crypto.authentication import AuthenticationService
 from src.core.events import (
+    ConfigurationChanged,
     EventBus,
+    MasterPasswordChanged,
+    SecurityAlert,
+    SystemActivity,
     UserLoggedIn,
     UserLoggedOut,
     now_utc,
@@ -60,6 +71,9 @@ class MainWindow(ctk.CTk):
         self.repo: VaultRepository | None = None
         self.entry_manager: EntryManager | None = None
         self.audit_repo: AuditRepository | None = None
+        self.audit_logger: AuditLogger | None = None
+        self.audit_bridge: AuditEventBridge | None = None
+        self.audit_config = AuditConfig()
         self.settings_repo: SettingsRepository | None = None
         self.clipboard_service: ClipboardService | None = None
         self.clipboard_monitor: ClipboardMonitor | None = None
@@ -72,6 +86,7 @@ class MainWindow(ctk.CTk):
         self._search_after_id: str | None = None
         self._passwords_visible = False
         self._clipboard_status_after_id: str | None = None
+        self._audit_verification_after_id: str | None = None
         self._last_clipboard_message = ""
 
         self.state_manager = StateManager(on_auto_lock=self._handle_auto_lock)
@@ -249,13 +264,21 @@ class MainWindow(ctk.CTk):
             font=ctk.CTkFont(size=13),
         )
         self.status.grid(row=0, column=0, sticky="w")
+        self.audit_status = ctk.CTkLabel(
+            status_frame,
+            text="Audit: locked",
+            anchor="e",
+            font=ctk.CTkFont(size=13),
+            text_color="gray70",
+        )
+        self.audit_status.grid(row=0, column=1, sticky="e", padx=(18, 0))
         self.clipboard_status = ctk.CTkLabel(
             status_frame,
             text="Clipboard: empty",
             anchor="e",
             font=ctk.CTkFont(size=13),
         )
-        self.clipboard_status.grid(row=0, column=1, sticky="e", padx=(18, 0))
+        self.clipboard_status.grid(row=0, column=2, sticky="e", padx=(18, 0))
 
     def _bind_shortcuts(self) -> None:
         self.bind("<Control-n>", lambda _event: self._add_entry())
@@ -325,7 +348,8 @@ class MainWindow(ctk.CTk):
             attempts = self.auth_service.register_failed_attempt()
             delay = self.auth_service.get_backoff_delay()
             AuditRepository(self.db).add_log(
-                action="failed_login", details=f"Failed login attempt {attempts}"
+                action="AUTH_LOGIN_FAILURE",
+                details=f"attempt_count={attempts};source=local",
             )
             self._show_error(
                 "Login Error",
@@ -344,7 +368,8 @@ class MainWindow(ctk.CTk):
     def _finish_unlock(self, initial_setup: bool) -> None:
         if self.db is None or self.repo is None:
             return
-        self.audit_repo = AuditRepository(self.db)
+        self.auth_service.login("local_user")
+        self.state_manager.login("local_user")
         self.entry_manager = EntryManager(
             self.db,
             self.repo.key_manager,
@@ -356,17 +381,39 @@ class MainWindow(ctk.CTk):
         except SettingsRepositoryError as exc:
             self.clipboard_config = ClipboardConfig.profile("standard")
             self._show_error("Clipboard Settings", str(exc))
+        try:
+            self.audit_config = self.settings_repo.load_audit_config()
+        except SettingsRepositoryError as exc:
+            self.audit_config = AuditConfig()
+            self._show_error("Audit Settings", str(exc))
+
+        self.audit_logger = AuditLogger(
+            self.db,
+            self.repo.key_manager,
+            self.audit_config,
+            is_authenticated=lambda: (
+                self.entry_manager is not None and not self.state_manager.is_locked()
+            ),
+            on_tamper=self._handle_audit_tamper,
+        )
+        self.audit_bridge = AuditEventBridge(self.event_bus, self.audit_logger)
+        self.audit_repo = AuditRepository(self.db, self.audit_logger)
         self._start_clipboard_subsystem()
-        self.auth_service.login("local_user")
-        self.state_manager.login("local_user")
         self.state_manager.start_inactivity_timer(self._get_auto_lock_timeout())
-        self.audit_repo.add_log(
-            action="login",
-            details="Initial vault setup" if initial_setup else "Successful login",
+        self.event_bus.publish(
+            SystemActivity(
+                "SystemActivity",
+                now_utc(),
+                "SYSTEM_STARTUP" if initial_setup else "SYSTEM_UNLOCK",
+                "INFO",
+                {"initial_setup": initial_setup},
+            )
         )
         self.event_bus.publish(UserLoggedIn("UserLoggedIn", now_utc(), "local_user"))
         self._hide_lock_overlay()
         self._load_entries()
+        self.audit_status.configure(text="Audit: checking", text_color="#fbbf24")
+        self.after(50, self._run_startup_audit_verification)
 
     def _load_entries(self) -> None:
         if self.entry_manager is None:
@@ -545,11 +592,16 @@ class MainWindow(ctk.CTk):
         )
 
     def _authenticate_clipboard_preview(self) -> bool:
+        return self._confirm_master_password("Clipboard Authentication")
+
+    def _confirm_master_password(
+        self, title: str = "Master Password Confirmation"
+    ) -> bool:
         if self.repo is None or self.db is None:
             return False
         dialog = ctk.CTkInputDialog(
-            text="Enter the master password to reveal the value:",
-            title="Clipboard Authentication",
+            text="Enter the master password to continue:",
+            title=title,
         )
         password = dialog.get_input()
         if password is None:
@@ -562,7 +614,7 @@ class MainWindow(ctk.CTk):
         stored_hash = row[0].decode("utf-8") if isinstance(row[0], bytes) else row[0]
         valid = self.repo.key_manager.verify_password(password, stored_hash)
         if not valid:
-            self._show_error("Clipboard Authentication", "Invalid master password.")
+            self._show_error(title, "Invalid master password.")
         return valid
 
     def _toggle_all_passwords(self) -> None:
@@ -585,7 +637,7 @@ class MainWindow(ctk.CTk):
         )
 
     def _start_clipboard_subsystem(self) -> None:
-        if self.audit_repo is None:
+        if self.audit_logger is None:
             return
         adapter = create_platform_adapter(private=self.clipboard_config.ephemeral_mode)
         self.clipboard_service = ClipboardService(
@@ -597,7 +649,6 @@ class MainWindow(ctk.CTk):
                 and not self.state_manager.is_locked()
             ),
             config=self.clipboard_config,
-            audit_callback=self.audit_repo.add_clipboard_log,
         )
         self.clipboard_service.add_observer(self)
         self.clipboard_service.install_signal_cleanup()
@@ -613,8 +664,15 @@ class MainWindow(ctk.CTk):
             lambda: self.after(0, self._on_close),
         )
         if not self.tray_indicator.start():
-            self.audit_repo.add_clipboard_log(
-                "clipboard_error", None, "operation=tray;fallback=status_bar"
+            self.event_bus.publish(
+                SecurityAlert(
+                    "SecurityAlert",
+                    now_utc(),
+                    "CLIPBOARD_TRAY_ERROR",
+                    "WARN",
+                    "main_window",
+                    {"operation": "tray", "fallback": "status_bar"},
+                )
             )
         self._apply_screen_capture_protection()
         self._schedule_clipboard_countdown()
@@ -685,9 +743,16 @@ class MainWindow(ctk.CTk):
         )
 
     def _clipboard_monitor_degraded(self, message: str) -> None:
-        if self.audit_repo is not None:
-            self.audit_repo.add_clipboard_log(
-                "clipboard_error", None, "operation=monitor;mode=degraded"
+        if self.audit_logger is not None:
+            self.event_bus.publish(
+                SecurityAlert(
+                    "SecurityAlert",
+                    now_utc(),
+                    "CLIPBOARD_MONITOR_DEGRADED",
+                    "WARN",
+                    "clipboard_monitor",
+                    {"operation": "monitor", "mode": "degraded"},
+                )
             )
         try:
             self.after(0, lambda: self._show_warning("Clipboard Monitor", message))
@@ -708,13 +773,20 @@ class MainWindow(ctk.CTk):
                 self.winfo_id(), display_affinity_exclude
             )
         except (AttributeError, OSError):
-            if self.audit_repo is not None:
-                self.audit_repo.add_clipboard_log(
-                    "clipboard_error", None, "operation=anti_screenshot"
+            if self.audit_logger is not None:
+                self.event_bus.publish(
+                    SecurityAlert(
+                        "SecurityAlert",
+                        now_utc(),
+                        "SCREEN_CAPTURE_PROTECTION_ERROR",
+                        "WARN",
+                        "main_window",
+                        {"operation": "anti_screenshot"},
+                    )
                 )
 
     def _change_master_password(self) -> None:
-        if self.repo is None or self.audit_repo is None:
+        if self.repo is None or self.audit_logger is None:
             self._show_warning("Change Password", "Unlock the vault first.")
             return
         dialog = ChangePasswordDialog(self)
@@ -729,16 +801,22 @@ class MainWindow(ctk.CTk):
             self._show_error("Change Password", "Current master password is incorrect.")
             return
         self.master_password = dialog.result["new_password"]
-        self.audit_repo.add_log(
-            action="change_master_password", details="Vault entries re-encrypted"
+        self.audit_logger.rekey_after_master_password_change()
+        self.event_bus.publish(
+            MasterPasswordChanged("MasterPasswordChanged", now_utc(), "local_user")
         )
         self._show_info("Change Password", "Master password changed successfully.")
 
     def _open_logs(self) -> None:
-        if self.audit_repo is None:
+        if self.audit_logger is None or self.state_manager.is_locked():
             self._show_warning("Logs", "Unlock the vault first.")
             return
-        AuditLogViewer(self, self.audit_repo)
+        AuditLogViewer(
+            self,
+            self.audit_logger,
+            confirm_master_password=self._confirm_master_password,
+            on_entry_selected=self._highlight_audit_entry,
+        )
 
     def _open_settings(self) -> None:
         if self.db is None or self.settings_repo is None:
@@ -756,6 +834,11 @@ class MainWindow(ctk.CTk):
                 self._show_error("Clipboard Settings", str(exc))
                 return
             self.clipboard_config = dialog.result
+            self.event_bus.publish(
+                ConfigurationChanged(
+                    "ConfigurationChanged", now_utc(), "clipboard_config"
+                )
+            )
             if self.clipboard_service is not None:
                 if previous_ephemeral != dialog.result.ephemeral_mode:
                     if self.clipboard_monitor is not None:
@@ -774,6 +857,110 @@ class MainWindow(ctk.CTk):
                 self.clipboard_service.update_config(dialog.result)
             self._apply_screen_capture_protection()
 
+    def _run_startup_audit_verification(self) -> None:
+        if self.audit_logger is None:
+            return
+        try:
+            report = self.audit_logger.verify_integrity(full=True)
+        except Exception as exc:  # noqa: BLE001 - the GUI must remain available
+            self.audit_status.configure(text="Audit: error", text_color="#f87171")
+            self._show_error("Audit Verification", str(exc))
+            return
+        self._apply_audit_status(report.verified)
+        self._schedule_periodic_audit_verification()
+
+    def _run_periodic_audit_verification(self) -> None:
+        self._audit_verification_after_id = None
+        if self.audit_logger is None or self.db is None or self.repo is None:
+            return
+        try:
+            report = self.audit_logger.verify_integrity(full=False)
+            self._apply_audit_status(report.verified)
+            self.audit_logger.rotate_if_needed()
+            scheduler = AuditExportScheduler(
+                AuditLogExporter(self.audit_logger, self.repo.key_manager),
+                self.db.path.parent / "audit_exports",
+            )
+            scheduler.run_if_due()
+        except Exception as exc:  # noqa: BLE001 - periodic work must not close the app
+            self.audit_status.configure(text="Audit: error", text_color="#f87171")
+            if self.audit_logger is not None:
+                self.audit_logger.record_incident(
+                    "AUDIT_PERIODIC_CHECK_ERROR",
+                    {"error_type": type(exc).__name__},
+                    severity="ERROR",
+                )
+        self._schedule_periodic_audit_verification()
+
+    def _schedule_periodic_audit_verification(self) -> None:
+        if self._audit_verification_after_id is not None:
+            self.after_cancel(self._audit_verification_after_id)
+        delay_ms = self.audit_config.verification_interval_hours * 60 * 60 * 1000
+        self._audit_verification_after_id = self.after(
+            delay_ms, self._run_periodic_audit_verification
+        )
+
+    def _apply_audit_status(self, verified: bool) -> None:
+        self.audit_status.configure(
+            text="Audit: valid" if verified else "Audit: tampered",
+            text_color="#4ade80" if verified else "#f87171",
+        )
+
+    def _handle_audit_tamper(self, report) -> None:
+        def notify() -> None:
+            self._apply_audit_status(False)
+            first_issue = (
+                report.invalid_entries[0]
+                if report.invalid_entries
+                else report.chain_breaks[0]
+                if report.chain_breaks
+                else {"reason": "signed head mismatch"}
+            )
+            self._show_error(
+                "Audit Integrity Warning",
+                "The protected audit trail failed verification.\n\n"
+                f"First issue: {first_issue}\n"
+                "The incident was written to the separate security log.",
+            )
+            if self.audit_config.lock_on_tamper and self.entry_manager is not None:
+                self._logout("audit_tamper")
+
+        try:
+            self.after(0, notify)
+        except RuntimeError:
+            pass
+
+    def _highlight_audit_entry(self, entry_id: str) -> None:
+        if self.table.select_entry(entry_id):
+            self.status.configure(text=f"Status: Audit entry selected {entry_id}")
+            return
+        self.search_var.set("")
+        self.category_filter.set("All categories")
+        self.date_filter.set("Any date")
+        self.strength_filter.set("Any strength")
+        self._apply_search()
+        if not self.table.select_entry(entry_id):
+            self._show_info(
+                "Audit Trail", "The linked vault entry is no longer active."
+            )
+
+    def _close_audit_subsystem(self) -> None:
+        if self._audit_verification_after_id is not None:
+            self.after_cancel(self._audit_verification_after_id)
+            self._audit_verification_after_id = None
+        if self.audit_bridge is not None:
+            self.audit_bridge.close()
+            self.audit_bridge = None
+        if self.audit_logger is not None:
+            try:
+                self.audit_logger.close()
+            except Exception as exc:  # noqa: BLE001 - shutdown must continue safely
+                self.audit_status.configure(
+                    text=f"Audit: close error {type(exc).__name__}",
+                    text_color="#f87171",
+                )
+            self.audit_logger = None
+
     def _get_auto_lock_timeout(self) -> int:
         if self.db is None:
             return 300
@@ -786,18 +973,29 @@ class MainWindow(ctk.CTk):
         except (TypeError, ValueError):
             return 300
 
-    def _logout(self) -> None:
+    def _logout(self, reason: str = "manual") -> None:
         if self.entry_manager is None:
             return
-        if self.audit_repo is not None:
-            self.audit_repo.add_log(action="logout", details="User logged out")
+        self.event_bus.publish(
+            SystemActivity(
+                "SystemActivity",
+                now_utc(),
+                "SYSTEM_LOCK",
+                "INFO",
+                {"reason": reason},
+            )
+        )
         self.event_bus.publish(UserLoggedOut("UserLoggedOut", now_utc(), "local_user"))
         db_path = self.db.path if self.db is not None else None
         self._clear_sensitive_data()
         self.auth_service.logout()
         self.state_manager.logout()
+        self._close_audit_subsystem()
+        if self.repo is not None:
+            self.repo.key_manager.lock()
         self._show_lock_overlay()
         self.status.configure(text="Status: Locked")
+        self.audit_status.configure(text="Audit: locked", text_color="gray70")
         if self.db is not None:
             self.db.close()
         self.db = None
@@ -809,7 +1007,7 @@ class MainWindow(ctk.CTk):
             self.after(100, lambda: self._show_login_dialog(db_path))
 
     def _handle_auto_lock(self) -> None:
-        self.after(0, self._logout)
+        self.after(0, lambda: self._logout("auto_lock"))
 
     def _clear_sensitive_data(self) -> None:
         self.master_password = None
@@ -835,8 +1033,6 @@ class MainWindow(ctk.CTk):
             self.after_cancel(self._clipboard_status_after_id)
             self._clipboard_status_after_id = None
         self.clipboard_status.configure(text="Clipboard: empty")
-        if self.repo is not None:
-            self.repo.key_manager.lock()
 
     def _unlock_from_overlay(self) -> None:
         if self.auth_dialog_open:
@@ -870,15 +1066,26 @@ class MainWindow(ctk.CTk):
     def _on_about(self) -> None:
         self._show_info(
             "About",
-            "CryptoSafe Manager\n\nSprint 4\nAES-256-GCM encrypted local vault\n"
-            "Secure cross-platform clipboard, automatic clearing, monitoring, and encrypted settings.",
+            "CryptoSafe Manager\n\nSprint 5\nAES-256-GCM encrypted local vault\n"
+            "Secure clipboard and tamper-evident Ed25519 audit trail with signed exports.",
         )
 
     def _on_close(self) -> None:
-        if self.audit_repo is not None:
-            self.audit_repo.add_log(action="app_close", details="Application closed")
+        if self.audit_logger is not None:
+            self.event_bus.publish(
+                SystemActivity(
+                    "SystemActivity",
+                    now_utc(),
+                    "SYSTEM_SHUTDOWN",
+                    "INFO",
+                    {"reason": "application_close"},
+                )
+            )
         self._clear_sensitive_data()
         self.state_manager.stop_timers()
+        self._close_audit_subsystem()
+        if self.repo is not None:
+            self.repo.key_manager.lock()
         if self.db is not None:
             self.db.close()
         if hasattr(self, "menu_bar"):

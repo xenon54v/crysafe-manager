@@ -69,6 +69,44 @@ class SearchPerformed(Event):
     result_count: int
 
 
+@dataclass(frozen=True)
+class AuthenticationFailed(Event):
+    user: str
+    attempt_count: int
+    source_address: str = "local"
+
+
+@dataclass(frozen=True)
+class MasterPasswordChanged(Event):
+    user: str
+
+
+@dataclass(frozen=True)
+class VaultAccessed(Event):
+    operation: str
+    entry_id: str | None = None
+
+
+@dataclass(frozen=True)
+class SystemActivity(Event):
+    event_type: str
+    severity: str = "INFO"
+    details: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
+class ConfigurationChanged(Event):
+    setting_name: str
+
+
+@dataclass(frozen=True)
+class SecurityAlert(Event):
+    event_type: str
+    severity: str
+    source: str
+    details: dict[str, Any] | None = None
+
+
 Handler = Callable[[Event], Any]
 
 

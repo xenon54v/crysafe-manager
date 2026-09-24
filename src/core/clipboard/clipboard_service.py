@@ -10,7 +10,13 @@ from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Protocol
 
-from src.core.events import ClipboardCleared, ClipboardCopied, EventBus, now_utc
+from src.core.events import (
+    ClipboardCleared,
+    ClipboardCopied,
+    EventBus,
+    SecurityAlert,
+    now_utc,
+)
 
 from .platform_adapter import ClipboardAdapterError, PlatformClipboardAdapter
 from .secure_memory import SecureBuffer
@@ -462,6 +468,29 @@ class ClipboardService:
     def _audit(self, action: str, entry_id: str | None, details: str) -> None:
         if self.audit_callback is not None:
             self.audit_callback(action, entry_id, details)
+        if self.event_bus is not None and action in {
+            "clipboard_security",
+            "clipboard_error",
+            "clipboard_preview",
+        }:
+            severity = "ERROR" if action == "clipboard_error" else "WARN"
+            parsed_details = {
+                "metadata": self._sanitize_label(details),
+                "entry_id": entry_id,
+            }
+            try:
+                self.event_bus.publish(
+                    SecurityAlert(
+                        "SecurityAlert",
+                        now_utc(),
+                        action.upper(),
+                        severity,
+                        "clipboard_service",
+                        parsed_details,
+                    )
+                )
+            except RuntimeError:
+                pass
 
     def _notify(self, snapshot: ClipboardSnapshot) -> None:
         with self._lock:

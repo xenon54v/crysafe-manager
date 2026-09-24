@@ -94,12 +94,12 @@ class SecureTable(ctk.CTkFrame):
                 self.tree.heading(
                     column,
                     text=headings[column],
-                    command=command,
+                    command=command
                 )
             else:
                 self.tree.heading(
                     column,
-                    text=headings[column],
+                    text=headings[column]
                 )
             anchor = (
                 "center" if column in {"CopyUser", "CopyPass", "Clipboard"} else "w"
@@ -172,6 +172,15 @@ class SecureTable(ctk.CTkFrame):
     def get_selected_entry_id(self):
         row = self.get_selected_row()
         return None if row is None else row["id"]
+
+    def select_entry(self, entry_id: str) -> bool:
+        entry_id = str(entry_id)
+        if entry_id not in self._entries or not self.tree.exists(entry_id):
+            return False
+        self.tree.selection_set(entry_id)
+        self.tree.focus(entry_id)
+        self.tree.see(entry_id)
+        return True
 
     def delete_selected_row(self) -> bool:
         selected = self.tree.selection()

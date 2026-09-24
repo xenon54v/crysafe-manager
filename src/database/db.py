@@ -7,7 +7,12 @@ from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 
-from .models import CREATE_INDEXES_SQL, CREATE_TABLES_SQL, SCHEMA_VERSION
+from .models import (
+    CREATE_INDEXES_SQL,
+    CREATE_TABLES_SQL,
+    CREATE_TRIGGERS_SQL,
+    SCHEMA_VERSION,
+)
 
 
 class QueryResult:
@@ -104,6 +109,13 @@ class Database:
 
     def connect(self) -> None:
         if self._pool is not None:
+            return
+
+        if str(self._db_path) == ":memory:":
+            self._pool = SQLiteConnectionPool(self._db_path, 1)
+            with self._pool.acquire() as connection:
+                self._initialize_schema(connection)
+                self._ensure_default_settings(connection)
             return
 
         if str(self._db_path) != ":memory:":
@@ -203,11 +215,14 @@ class Database:
 
     def _initialize_schema(self, connection: sqlite3.Connection) -> None:
         self._migrate_legacy_vault_table(connection)
+        self._migrate_legacy_audit_table(connection)
         self._ensure_key_store_columns(connection)
 
         for statement in CREATE_TABLES_SQL:
             connection.execute(statement)
         for statement in CREATE_INDEXES_SQL:
+            connection.execute(statement)
+        for statement in CREATE_TRIGGERS_SQL:
             connection.execute(statement)
 
         connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION};")
@@ -264,6 +279,36 @@ class Database:
             connection.execute(
                 "UPDATE key_store SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL;"
             )
+
+    def _migrate_legacy_audit_table(self, connection: sqlite3.Connection) -> None:
+        row = connection.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'audit_log';"
+        ).fetchone()
+        if row is None:
+            return
+
+        columns = {
+            item[1]
+            for item in connection.execute("PRAGMA table_info(audit_log);").fetchall()
+        }
+        if "sequence_number" in columns:
+            return
+
+        legacy_name = "legacy_audit_log"
+        suffix = 1
+        while (
+            connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?;",
+                (legacy_name,),
+            ).fetchone()
+            is not None
+        ):
+            legacy_name = f"legacy_audit_log_{suffix}"
+            suffix += 1
+
+        if not legacy_name.replace("_", "").isalnum():
+            raise RuntimeError("Unable to create a safe legacy audit table name.")
+        connection.execute(f"ALTER TABLE audit_log RENAME TO {legacy_name};")
 
     def _ensure_default_settings(self, connection: sqlite3.Connection) -> None:
         defaults = (

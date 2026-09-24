@@ -5,41 +5,39 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="73fa0911-439a-4651-b160-23c5affec461" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitattributes" beforeDir="false" afterPath="$PROJECT_DIR$/.gitattributes" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LICENSE" beforeDir="false" afterPath="$PROJECT_DIR$/LICENSE" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/cryptosafe_dev.db" beforeDir="false" afterPath="$PROJECT_DIR$/data/cryptosafe_dev.db" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/crypto/abstract.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/crypto/abstract.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/clipboard/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/clipboard/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/clipboard/clipboard_monitor.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/clipboard/clipboard_monitor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/clipboard/clipboard_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/clipboard/clipboard_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/clipboard/platform_adapter.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/clipboard/platform_adapter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/clipboard/secure_memory.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/clipboard/secure_memory.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/core/crypto/key_derivation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/crypto/key_derivation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/core/events.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/events.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/core/key_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/key_manager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/core/state_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/state_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/vault/encryption_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/vault/encryption_service.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/core/vault/entry_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/vault/entry_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/vault/password_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/vault/password_generator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/vault/search_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/vault/search_service.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/vault/url_tools.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/vault/url_tools.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/database/audit_repo.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/audit_repo.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/database/db.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/db.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/database/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/database/repo.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/repo.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui/add_entry_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/add_entry_dialog.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui/edit_entry_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/edit_entry_dialog.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/database/settings_repo.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/settings_repo.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/gui/clipboard_ui.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/clipboard_ui.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gui/entry_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/entry_dialog.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/main_window.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gui/settings_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/settings_dialog.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui/setup_wizard.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/setup_wizard.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/gui/widgets/audit_log_viewer.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/widgets/audit_log_viewer.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gui/widgets/secure_table.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/widgets/secure_table.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/conftest.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/conftest.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/sprint2/test_password_rotation.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint2/test_password_rotation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/sprint3/test_database_and_transactions.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint3/test_database_and_transactions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/sprint3/test_encryption_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint3/test_encryption_service.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/sprint3/test_entry_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint3/test_entry_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/sprint3/test_gui_formatting.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint3/test_gui_formatting.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/sprint3/test_integration_and_performance.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint3/test_integration_and_performance.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/sprint3/test_password_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint3/test_password_generator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/sprint3/test_search_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint3/test_search_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/sprint4/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint4/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/sprint4/test_clipboard_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint4/test_clipboard_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/sprint4/test_entry_clipboard_policy.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint4/test_entry_clipboard_policy.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/sprint4/test_monitor_and_settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint4/test_monitor_and_settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/sprint4/test_platform_adapters.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint4/test_platform_adapters.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,7 +45,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="79" />
+    <option name="cachedIndexableFilesCount" value="82" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -89,38 +87,38 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python tests.Python tests in test_crypto.py.executor": "Run",
-    "Python tests.Python tests in test_encryption_service.py.executor": "Run",
-    "Python tests.Python tests in test_entry_manager.py.executor": "Run",
-    "Python tests.Python tests in test_key_derivation.py.executor": "Run",
-    "Python tests.Python tests in test_key_storage.py.executor": "Run",
-    "Python.Unnamed.executor": "Run",
-    "Python.db.executor": "Run",
-    "Python.entry_manager.executor": "Run",
-    "Python.key_manager.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.main_window.executor": "Debug",
-    "Python.manual_check_sprint3.executor": "Run",
-    "Python.setup_wizard.executor": "Run",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "ai.playground.ignore.import.keys.banner.in.settings": "true",
-    "git-widget-placeholder": "sprint4-integration",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "ml.llm.AcpAgentsConfigurable",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python tests.Python tests in test_crypto.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in test_encryption_service.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in test_entry_manager.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in test_key_derivation.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in test_key_storage.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Unnamed.executor&quot;: &quot;Run&quot;,
+    &quot;Python.db.executor&quot;: &quot;Run&quot;,
+    &quot;Python.entry_manager.executor&quot;: &quot;Run&quot;,
+    &quot;Python.key_manager.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main_window.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.manual_check_sprint3.executor&quot;: &quot;Run&quot;,
+    &quot;Python.setup_wizard.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;ai.playground.ignore.import.keys.banner.in.settings&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;ml.llm.AcpAgentsConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\ksenia\PycharmProjects\crysafe-manager\src\core" />
