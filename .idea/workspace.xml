@@ -5,39 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="73fa0911-439a-4651-b160-23c5affec461" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/crysafe-manager.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/crysafe-manager.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/LICENSE" beforeDir="false" afterPath="$PROJECT_DIR$/LICENSE" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/cryptosafe_dev.db" beforeDir="false" afterPath="$PROJECT_DIR$/data/cryptosafe_dev.db" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/clipboard/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/clipboard/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/clipboard/clipboard_monitor.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/clipboard/clipboard_monitor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/clipboard/clipboard_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/clipboard/clipboard_service.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/clipboard/platform_adapter.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/clipboard/platform_adapter.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/clipboard/secure_memory.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/clipboard/secure_memory.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/crypto/key_derivation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/crypto/key_derivation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/events.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/events.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/key_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/key_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/state_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/state_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/core/vault/entry_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/vault/entry_manager.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/database/audit_repo.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/audit_repo.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/database/db.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/db.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/database/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/database/repo.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/repo.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/database/settings_repo.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/settings_repo.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui/clipboard_ui.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/clipboard_ui.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui/entry_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/entry_dialog.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui/main_window.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/main_window.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui/settings_dialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/settings_dialog.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui/widgets/audit_log_viewer.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/widgets/audit_log_viewer.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gui/widgets/secure_table.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui/widgets/secure_table.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/conftest.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/conftest.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/sprint4/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint4/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/sprint4/test_clipboard_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint4/test_clipboard_service.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/sprint4/test_entry_clipboard_policy.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint4/test_entry_clipboard_policy.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/sprint4/test_monitor_and_settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint4/test_monitor_and_settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/sprint4/test_platform_adapters.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/sprint4/test_platform_adapters.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,7 +18,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="82" />
+    <option name="cachedIndexableFilesCount" value="97" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">

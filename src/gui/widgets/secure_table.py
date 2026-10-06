@@ -90,17 +90,7 @@ class SecureTable(ctk.CTkFrame):
             command = None
             if column not in {"CopyUser", "CopyPass", "Clipboard"}:
                 command = partial(self.sort_by, column)
-            if command is not None:
-                self.tree.heading(
-                    column,
-                    text=headings[column],
-                    command=command
-                )
-            else:
-                self.tree.heading(
-                    column,
-                    text=headings[column]
-                )
+            self.tree.heading(column, text=headings[column], command=command)
             anchor = (
                 "center" if column in {"CopyUser", "CopyPass", "Clipboard"} else "w"
             )
