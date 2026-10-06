@@ -23,6 +23,8 @@ from .secure_memory import SecureBuffer
 
 
 class ClipboardType(str, Enum):
+    """Represent clipboard type behavior."""
+
     TEXT = "text"
     USERNAME = "username"
     PASSWORD = "password"
@@ -31,12 +33,16 @@ class ClipboardType(str, Enum):
 
 
 class SecurityLevel(str, Enum):
+    """Represent security level behavior."""
+
     BASIC = "basic"
     ADVANCED = "advanced"
     PARANOID = "paranoid"
 
 
 class ClipboardState(str, Enum):
+    """Store clipboard state values."""
+
     IDLE = "idle"
     ACTIVE = "active"
     WARNING = "warning"
@@ -46,6 +52,8 @@ class ClipboardState(str, Enum):
 
 @dataclass(frozen=True)
 class ClipboardConfig:
+    """Store clipboard config values."""
+
     timeout_seconds: int | None = 30
     notifications_enabled: bool = True
     security_level: SecurityLevel = SecurityLevel.BASIC
@@ -80,6 +88,8 @@ class ClipboardConfig:
 
 @dataclass(frozen=True)
 class ClipboardSnapshot:
+    """Store clipboard snapshot values."""
+
     state: ClipboardState
     entry_id: str | None = None
     source: str = ""
@@ -97,6 +107,8 @@ class ClipboardSnapshot:
 
 
 class ClipboardObserver(Protocol):
+    """Define the clipboard observer interface."""
+
     def clipboard_state_changed(self, snapshot: ClipboardSnapshot) -> None: ...
 
 
@@ -105,6 +117,8 @@ AuditCallback = Callable[[str, str | None, str], None]
 
 
 class ClipboardService:
+    """Provide clipboard service operations."""
+
     MAX_VALUE_BYTES = 1024 * 1024
 
     def __init__(

@@ -48,6 +48,8 @@ class AuditError(RuntimeError):
 
 @dataclass(frozen=True)
 class AuditConfig:
+    """Store audit config values."""
+
     max_entries: int = 10_000
     max_age_days: int = 365
     verification_interval_hours: int = 24
@@ -80,6 +82,8 @@ class AuditConfig:
 
 @dataclass(frozen=True)
 class AuditQuery:
+    """Store audit query values."""
+
     event_type: str = ""
     severity: str = ""
     user_id: str = ""
@@ -94,6 +98,8 @@ class AuditQuery:
 
 
 class AuditLogger:
+    """Provide audit logger operations."""
+
     SEVERITIES: ClassVar[set[str]] = {"INFO", "WARN", "ERROR", "CRITICAL"}
     _QUEUE_STOP = object()
 

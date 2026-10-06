@@ -1,93 +1,183 @@
 # CryptoSafe Manager
 
-CryptoSafe Manager is a desktop password manager for the Applied Cryptography course. Sprint 5 adds a tamper-evident audit subsystem to the encrypted vault and secure clipboard implemented in Sprints 1-4.
+CryptoSafe Manager — локальный настольный менеджер паролей на Python. Приложение хранит записи в SQLite только в зашифрованном виде, поддерживает защищённый буфер обмена, импорт и экспорт, передачу отдельных записей, подписанный журнал аудита и аварийный режим блокировки.
 
-## Sprint 5 features
+Версия Sprint 8 объединяет функции Sprint 1–7 в итоговую поставку. В неё входят исходный запуск, воспроизводимые тесты, Linux-дистрибутив PyInstaller, пользовательская и техническая документация, демонстрационное видео и презентация.
 
-- Ed25519 signatures with an HMAC-SHA256 fallback
-- HKDF key separation with the `audit-signing` context and protected in-memory key material
-- monotonic sequence numbers, SHA-256 hash chaining, and a signed head anchor that detects tail truncation
-- signing-key generations for forward security and a separate public-key table
-- structured UTC events for authentication, vault operations, searches, clipboard activity, system state, security alerts, and configuration changes
-- recursive redaction of passwords, secrets, tokens, search text, and personal identifiers
-- append-only SQLite triggers for signed records, public keys, incidents, and archives
-- automatic migration of Sprint 1-4 audit rows without losing prior events
-- full startup verification and configurable 24-hour checks of the most recent 1000 entries
-- a separate encrypted incident journal for integrity failures and protection attempts
-- an authenticated audit viewer with sorting, advanced filters, full-text search, 50-row pagination, JSON details, signature status, chain visualization, context actions, and dashboard metrics
-- signed JSON, CSV, and PDF exports with date-range selection and optional AES-256-GCM encryption
-- independent signed-JSON verification, manual verification reports, scheduled exports, retention cleanup, and encrypted database archives
-- encrypted audit configuration and master-password confirmation before interactive export
+## Возможности
 
-The database prevents normal updates and deletions of signed audit records. Cryptographic verification also detects offline database modification, broken sequence order, changed content, invalid signatures, and removal of the newest records. The protected journal cannot reconstruct data that an attacker deletes from every copy of the database, so operational backups remain necessary.
+- создание локального хранилища с мастер-паролем;
+- добавление, редактирование, поиск и мягкое удаление записей;
+- AES-256-GCM для записей и уникальный nonce для каждой операции;
+- Argon2id для проверки мастер-пароля, PBKDF2-HMAC-SHA256 для ключа шифрования и HKDF для разделения ключей;
+- генератор паролей и оценка стойкости;
+- защищённый буфер обмена с таймером автоматической очистки;
+- импорт и экспорт CryptoSafe JSON, CSV, Bitwarden JSON и LastPass CSV;
+- защищённый обмен через пароль, RSA-OAEP, ECDH P-256 и QR-коды;
+- Ed25519-подписи, SHA-256 хеш-цепочка и append-only журнал аудита;
+- автоматическая блокировка, защищённая память, системный трей и panic mode;
+- обработка ошибок в интерфейсе без вывода пользователю необработанного traceback.
 
-## Installation on Windows
+## Быстрый запуск из исходного кода
+
+Требуется Python 3.12.
+
+### Windows
 
 ```powershell
+git clone https://github.com/xenon54v/crysafe-manager.git
+cd crysafe-manager
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
+python run.py --check
+python run.py
 ```
 
-## Installation on macOS and Linux
+### macOS и Linux
 
 ```bash
+git clone https://github.com/xenon54v/crysafe-manager.git
+cd crysafe-manager
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
+python run.py --check
+python run.py
 ```
 
-Wayland uses `wl-copy` and `wl-paste` when available. X11 uses `xclip` first and then `xsel`. Install one of these native tools for the most reliable Linux clipboard behavior.
+Команда `python run.py --check` проверяет обязательные зависимости, импорт точки входа и запись в локальную SQLite без открытия GUI.
 
-## Run
+По умолчанию исходный запуск использует `data/cryptosafe_dev.db`. Переменная `CRYPTOSAFE_DB_PATH` задаёт другой путь. Упакованная версия хранит данные в каталоге пользователя:
+
+- Windows: `%LOCALAPPDATA%\CryptoSafe Manager`;
+- macOS: `~/Library/Application Support/CryptoSafe Manager`;
+- Linux: `$XDG_DATA_HOME/cryptosafe-manager` или `~/.local/share/cryptosafe-manager`.
+
+## Запуск готового Linux-дистрибутива
+
+Распакуйте `CryptoSafeManager-linux-x86_64.zip`, не меняя внутреннюю структуру папки, затем выполните:
 
 ```bash
-python -m src.main
+chmod +x CryptoSafeManager/cryptosafe-manager
+./CryptoSafeManager/cryptosafe-manager --check
+./CryptoSafeManager/cryptosafe-manager
 ```
 
-The default development database is `data/cryptosafe_dev.db`. Set `CRYPTOSAFE_DB_PATH` before launch to use another path.
+Дистрибутив собран в режиме PyInstaller `onedir`: исполняемый файл и все зависимости находятся в одной папке. Сборка предназначена для Linux x86_64. Для Windows и macOS используйте тот же spec-файл на целевой ОС.
 
-## Audit workflow
+## Тестирование
 
-1. Unlocking the vault derives a generation-specific signing key from the active master key through HKDF.
-2. Domain events are converted to structured audit entries by `AuditEventBridge`.
-3. `AuditLogger` sanitizes details, links the previous record hash, signs the canonical JSON, and updates the signed head anchor.
-4. Startup, periodic, or manual verification checks the sequence, hashes, signatures, public keys, and anchor.
-5. A failed check creates an encrypted incident, updates the GUI, and locks the vault when the configured policy requires it.
-
-## Tests
+Обычный прогон:
 
 ```bash
 python -m pytest -q
 ```
 
-The Sprint 5 suite covers tampering, tail truncation, append-only enforcement, redaction, key separation, forward key generations, 1000-signature verification, 10000-event throughput, indexed queries, viewer memory limits, event integration, encrypted settings, legacy migration, signed JSON verification, CSV/PDF export, encrypted exports, archives, access control, and SQL-injection attempts.
-
-Basic static checks:
+Полный прогон с порогом покрытия и HTML-отчётом:
 
 ```bash
-ruff check --select E4,E7,E9,F src tests
+./scripts/run_test_report.sh
 ```
 
-## Project structure
+Отчёт создаётся в [tests/report/index.html](tests/report/index.html). Покрытие измеряет криптографический, хранилищный, буферный, аудиторский, импортно-экспортный и БД-слои. Нативный GUI проверяется отдельно, так как автоматический прогон не использует дисплей-сервер. Итог Sprint 8: 203 теста, покрытие не ниже 80% и время полного прогона менее 30 секунд в контрольной среде.
+
+Статические проверки:
+
+```bash
+python scripts/project_checks.py
+ruff check --select E4,E7,E9,F src tests scripts run.py
+python -m compileall -q src tests scripts run.py
+```
+
+## Основной сценарий работы
+
+### Создание хранилища
+
+При первом запуске мастер настройки предлагает создать мастер-пароль и выбрать файл БД. Пароль должен содержать не менее 12 символов, буквы обоих регистров, цифру и специальный символ.
+
+![Создание хранилища](docs/images/setup.png)
+
+### Работа с записями
+
+Главное окно показывает записи с замаскированными именами и паролями. Кнопки `Add`, `Edit` и `Delete` управляют выбранной записью. Строка поиска поддерживает обычные и полевые запросы, например `title:"course portal"`.
+
+![Главное окно](docs/images/vault_overview.png)
+
+Редактор проверяет обязательные поля, URL и JSON дополнительных данных. Генератор создаёт пароль по выбранной длине и наборам символов.
+
+![Редактор записи](docs/images/entry_editor.png)
+
+### Защищённый буфер обмена
+
+Копирование запускает таймер. После его окончания приложение очищает системный буфер, защищённую копию в памяти и индикатор интерфейса. Доступны ручная очистка и предварительный просмотр с явным подтверждением раскрытия.
+
+![Защищённый буфер](docs/images/secure_clipboard.png)
+
+### Импорт и экспорт
+
+Экспорт позволяет выбрать записи, поля, формат и способ защиты. Для резервной копии рекомендуется CryptoSafe JSON с AES-256-GCM и отдельным экспортным паролем. Импорт сначала показывает предварительный результат, проверяет целостность и только затем изменяет БД в транзакции.
+
+![Зашифрованный экспорт](docs/images/encrypted_export.png)
+
+### Аудит и аварийная блокировка
+
+Журнал хранит последовательность подписанных событий. Команда полной проверки сверяет порядок, хеши, подписи и якорь последней записи. Panic mode очищает буфер и защищённую память, скрывает окно и блокирует хранилище. Восстановление требует мастер-пароль.
+
+![Журнал аудита](docs/images/audit_log.png)
+
+## Сборка PyInstaller
+
+На Linux:
+
+```bash
+./scripts/build_linux.sh
+```
+
+Скрипт использует [packaging/cryptosafe-manager.spec](packaging/cryptosafe-manager.spec), создаёт `release/CryptoSafeManager/` и запускает встроенную проверку собранного файла. PyInstaller должен выполняться на каждой целевой ОС отдельно.
+
+## Документация и материалы
+
+- [Руководство пользователя](docs/user_guide.md)
+- [Техническое описание](docs/technical.md)
+- [HTML-отчёт о тестировании](tests/report/index.html)
+- `docs/CryptoSafe_Manager_Demo.mp4` — демонстрация продолжительностью 3 минуты 12 секунд
+- `docs/CryptoSafe_Manager_Final_Presentation.pptx` и PDF-версия — итоговая презентация на 6 слайдов
+- `docs/CryptoSafe_Manager_Sprint_8_Code_Explanation.docx` — подробное русскоязычное объяснение кода
+
+## Структура проекта
 
 ```text
-src/
-  core/
-    audit/                 logger, signer, verifier, exports and scheduler
-    clipboard/             service, platform adapters, monitor, secure memory
-    crypto/                master password and key derivation
-    vault/                 encryption, CRUD, generation, search, URL tools
-  database/                schema, connection pool, settings and compatibility repositories
-  gui/                     main window, audit/clipboard UI, dialogs and widgets
-tests/
-  sprint1/
-  sprint2/
-  sprint3/
-  sprint4/
-  sprint5/
+run.py                         исходная и упакованная точка входа
+src/core/                     бизнес-логика и безопасность
+src/database/                 схема SQLite, пул и репозитории
+src/gui/                      окна, диалоги, таблицы и трей
+tests/sprint1 ... sprint8/    модульные и интеграционные тесты
+tests/report/                 JUnit, coverage JSON и HTML-отчёт
+scripts/                      проверки, сборка и генерация материалов
+packaging/                    PyInstaller и политики ОС
+docs/                         руководства, изображения, видео и презентация
 ```
 
-Detailed Russian-language code documentation is provided in `docs/CryptoSafe_Manager_Sprint_5_Code_Explanation.docx`.
+## Известные ограничения
+
+- Linux-дистрибутив собирается для x86_64 и не переносится напрямую на Windows или macOS.
+- Для надёжного буфера обмена Linux нужны `wl-copy`/`wl-paste`, `xclip` или `xsel`; иначе используется резервный адаптер.
+- Фоновый системный трей зависит от доступного нативного backend и графической сессии.
+- Python не может гарантировать аппаратную защиту памяти, экранирование устройства или системную политику Secure Desktop. Приложение использует доступные механизмы ОС и безопасно снижает режим защиты при их отсутствии.
+- Неподписанный экспорт CSV предназначен только для контролируемой миграции и требует явного подтверждения.
+- Встроенной синхронизации и браузерного автозаполнения нет.
+
+## Возможные следующие шаги
+
+- расширение браузера с локальным подтверждением автозаполнения;
+- TOTP и аппаратные ключи для второго фактора;
+- зашифрованная синхронизация между доверенными устройствами;
+- подписанные установщики Windows и notarized-приложение macOS;
+- автоматический end-to-end прогон GUI на Windows, macOS, X11 и Wayland.
+
+## Лицензия
+
+Проект распространяется по лицензии MIT. См. [LICENSE](LICENSE).

@@ -20,6 +20,8 @@ class AuditExportError(RuntimeError):
 
 
 class AuditLogExporter:
+    """Represent audit log exporter behavior."""
+
     ENCRYPTED_HEADER = b"CSAUDIT1"
 
     def __init__(self, logger, key_manager) -> None:
@@ -417,6 +419,8 @@ class AuditLogExporter:
 
 
 class AuditExportScheduler:
+    """Provide audit export scheduler operations."""
+
     def __init__(
         self, exporter: AuditLogExporter, export_directory: Path | str
     ) -> None:

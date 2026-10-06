@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ctypes
 import json
 import os
 from datetime import datetime, timezone
@@ -9,9 +10,12 @@ from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from src.core.crypto.abstract import EncryptionService
+from src.core.security.side_channel_protection import SideChannelProtection
 
 
 class KeyManagerProtocol(Protocol):
+    """Define the key manager protocol interface."""
+
     def get_active_key(self) -> bytes: ...
 
 
@@ -31,6 +35,13 @@ class AESGCMEncryptionService(EncryptionService):
     KEY_SIZE = 32
     PAYLOAD_VERSION = 1
 
+    def __init__(
+        self, side_channel_protection: SideChannelProtection | None = None
+    ) -> None:
+        self.side_channel_protection = (
+            side_channel_protection or SideChannelProtection()
+        )
+
     def encrypt(
         self,
         data: bytes,
@@ -40,10 +51,16 @@ class AESGCMEncryptionService(EncryptionService):
         if not isinstance(data, bytes):
             raise TypeError("Data for encryption must be bytes.")
 
-        key = self._get_valid_key(key_manager)
-        nonce = os.urandom(self.NONCE_SIZE)
-        ciphertext_and_tag = AESGCM(key).encrypt(nonce, data, associated_data)
-        return nonce + ciphertext_and_tag
+        key_buffer = bytearray(self._get_valid_key(key_manager))
+        try:
+            nonce = os.urandom(self.NONCE_SIZE)
+            with self.side_channel_protection.harden_operation():
+                ciphertext_and_tag = AESGCM(bytes(key_buffer)).encrypt(
+                    nonce, data, associated_data
+                )
+            return nonce + ciphertext_and_tag
+        finally:
+            self._zero(key_buffer)
 
     def decrypt(
         self,
@@ -58,14 +75,19 @@ class AESGCMEncryptionService(EncryptionService):
         if len(encrypted_data) < minimum_size:
             raise VaultEncryptionError("Encrypted data is invalid.")
 
-        key = self._get_valid_key(key_manager)
+        key_buffer = bytearray(self._get_valid_key(key_manager))
         nonce = encrypted_data[: self.NONCE_SIZE]
         ciphertext_and_tag = encrypted_data[self.NONCE_SIZE :]
 
         try:
-            return AESGCM(key).decrypt(nonce, ciphertext_and_tag, associated_data)
+            with self.side_channel_protection.harden_operation():
+                return AESGCM(bytes(key_buffer)).decrypt(
+                    nonce, ciphertext_and_tag, associated_data
+                )
         except (InvalidTag, ValueError) as exc:
             raise VaultEncryptionError("Encrypted data authentication failed.") from exc
+        finally:
+            self._zero(key_buffer)
 
     def encrypt_entry(
         self,
@@ -85,7 +107,11 @@ class AESGCMEncryptionService(EncryptionService):
         except (TypeError, ValueError) as exc:
             raise VaultEncryptionError("Entry data cannot be serialized.") from exc
 
-        return self.encrypt(payload_bytes, key_manager, associated_data)
+        payload_buffer = bytearray(payload_bytes)
+        try:
+            return self.encrypt(bytes(payload_buffer), key_manager, associated_data)
+        finally:
+            self._zero(payload_buffer)
 
     def decrypt_entry(
         self,
@@ -93,12 +119,16 @@ class AESGCMEncryptionService(EncryptionService):
         key_manager: KeyManagerProtocol,
         associated_data: bytes | None = None,
     ) -> dict[str, Any]:
-        payload_bytes = self.decrypt(encrypted_data, key_manager, associated_data)
+        payload_bytes = bytearray(
+            self.decrypt(encrypted_data, key_manager, associated_data)
+        )
 
         try:
-            payload = json.loads(payload_bytes.decode("utf-8"))
+            payload = json.loads(bytes(payload_bytes).decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise VaultEncryptionError("Encrypted payload is invalid.") from exc
+        finally:
+            self._zero(payload_bytes)
 
         self._validate_payload(payload)
         return payload
@@ -161,3 +191,10 @@ class AESGCMEncryptionService(EncryptionService):
         if not isinstance(key, bytes) or len(key) != self.KEY_SIZE:
             raise VaultEncryptionError("A valid 32-byte encryption key is required.")
         return key
+
+    @staticmethod
+    def _zero(buffer: bytearray) -> None:
+        if buffer:
+            ctypes.memset(
+                (ctypes.c_char * len(buffer)).from_buffer(buffer), 0, len(buffer)
+            )

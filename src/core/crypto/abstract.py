@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 
 
 class EncryptionService(ABC):
+    """Provide encryption service operations."""
+
     @abstractmethod
     def encrypt(
         self,

@@ -5,19 +5,25 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
+
 @dataclass
 class AuthSession:
-    username: str = 'local_user'
+    """Store auth session values."""
+
+    username: str = "local_user"
     is_authenticated: bool = False
     login_time: Optional[datetime] = None
     last_activity_time: Optional[datetime] = None
     failed_attempt_count: int = 0
 
+
 class AuthenticationService:
+    """Provide authentication service operations."""
+
     def __init__(self) -> None:
         self._session = AuthSession()
 
-    def login(self, username: str = 'local_user') -> AuthSession:
+    def login(self, username: str = "local_user") -> AuthSession:
         now = datetime.now()
 
         self._session = AuthSession(

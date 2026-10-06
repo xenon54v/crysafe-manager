@@ -1,0 +1,17 @@
+policy_module(cryptosafe_manager, 1.0)
+
+require {
+    type user_home_t;
+    type user_tmp_t;
+    class file { create getattr open read rename setattr unlink write };
+    class dir { add_name create getattr open read remove_name search write };
+}
+
+type cryptosafe_manager_t;
+type cryptosafe_manager_exec_t;
+application_domain(cryptosafe_manager_t, cryptosafe_manager_exec_t)
+
+allow cryptosafe_manager_t user_home_t:dir { add_name create getattr open read remove_name search write };
+allow cryptosafe_manager_t user_home_t:file { create getattr open read rename setattr unlink write };
+allow cryptosafe_manager_t user_tmp_t:dir { add_name create getattr open read remove_name search write };
+allow cryptosafe_manager_t user_tmp_t:file { create getattr open read rename setattr unlink write };

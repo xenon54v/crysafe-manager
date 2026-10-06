@@ -1,5 +1,6 @@
 from src.core.crypto.authentication import AuthenticationService
 
+
 def test_authentication_login():
     auth = AuthenticationService()
 
@@ -9,6 +10,7 @@ def test_authentication_login():
     assert session.username == "test_user"
     assert session.login_time is not None
 
+
 def test_authentication_logout():
     auth = AuthenticationService()
 
@@ -16,6 +18,7 @@ def test_authentication_logout():
     auth.logout()
 
     assert auth.is_authenticated() is False
+
 
 def test_failed_attempt_counter_increases():
     auth = AuthenticationService()

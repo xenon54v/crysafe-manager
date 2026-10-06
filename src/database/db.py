@@ -43,6 +43,8 @@ class QueryResult:
 
 
 class SQLiteConnectionPool:
+    """Manage a thread-safe pool of SQLite connections."""
+
     def __init__(self, db_path: Path, size: int = 4) -> None:
         if size < 1:
             raise ValueError("Connection pool size must be at least one.")
@@ -93,6 +95,8 @@ class SQLiteConnectionPool:
 
 
 class Database:
+    """Represent database behavior."""
+
     def __init__(self, db_path: Path | str, pool_size: int = 4) -> None:
         self._db_path = Path(db_path)
         self._pool_size = pool_size

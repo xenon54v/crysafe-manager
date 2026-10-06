@@ -4,6 +4,8 @@ from src.gui.entry_dialog import EntryDialog
 
 
 class EditEntryDialog(EntryDialog):
+    """Present the edit entry dialog interface."""
+
     def __init__(
         self,
         master=None,

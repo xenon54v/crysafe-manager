@@ -1,5 +1,6 @@
-﻿from src.core.crypto.placeholder import AES256Placeholder
+from src.core.crypto.placeholder import AES256Placeholder
 from src.core.key_manager import KeyManager
+
 
 def test_encrypt_decrypt_roundtrip():
     service = AES256Placeholder()
@@ -16,6 +17,7 @@ def test_encrypt_decrypt_roundtrip():
 
     assert plaintext == data
 
+
 def test_encrypt_produces_different_ciphertexts_for_same_data():
     service = AES256Placeholder()
     key_manager = KeyManager()
@@ -31,6 +33,7 @@ def test_encrypt_produces_different_ciphertexts_for_same_data():
 
     assert ciphertext1 != ciphertext2
 
+
 def test_ciphertext_does_not_contain_plaintext():
     service = AES256Placeholder()
     key_manager = KeyManager()
@@ -44,4 +47,3 @@ def test_ciphertext_does_not_contain_plaintext():
     ciphertext = service.encrypt(data, key_manager)
 
     assert data not in ciphertext
-

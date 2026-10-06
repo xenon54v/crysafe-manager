@@ -4,6 +4,8 @@ from src.gui.entry_dialog import EntryDialog, EntryResult
 
 
 class AddEntryDialog(EntryDialog):
+    """Present the add entry dialog interface."""
+
     def __init__(self, master=None, generator=None, username_suggester=None) -> None:
         super().__init__(
             master,

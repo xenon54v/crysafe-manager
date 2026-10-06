@@ -5,6 +5,12 @@ from dataclasses import asdict
 
 from src.core.audit.audit_logger import AuditConfig
 from src.core.clipboard.clipboard_service import ClipboardConfig, SecurityLevel
+from src.core.security.config import (
+    ActivitySensitivity,
+    DeviceType,
+    SecurityHardeningConfig,
+    SecurityProfile,
+)
 from src.core.vault.encryption_service import (
     AESGCMEncryptionService,
     VaultEncryptionError,
@@ -16,8 +22,11 @@ class SettingsRepositoryError(RuntimeError):
 
 
 class SettingsRepository:
+    """Provide settings repository operations."""
+
     CLIPBOARD_KEY = "clipboard_config"
     AUDIT_KEY = "audit_config"
+    SECURITY_KEY = "security_hardening_config"
 
     def __init__(self, db, key_manager) -> None:
         self.db = db
@@ -155,6 +164,88 @@ class SettingsRepository:
             )
         except Exception as exc:
             raise SettingsRepositoryError("Audit settings could not be saved.") from exc
+
+    def load_security_config(self) -> SecurityHardeningConfig:
+        row = self.db.execute(
+            "SELECT setting_value, encrypted FROM settings WHERE setting_key = ?;",
+            (self.SECURITY_KEY,),
+        ).fetchone()
+        if row is None:
+            config = SecurityHardeningConfig.for_profile(SecurityProfile.STANDARD)
+            self.save_security_config(config)
+            return config
+        try:
+            if int(row[1]) != 1:
+                raise SettingsRepositoryError("Security settings are not encrypted.")
+            raw = self.encryption.decrypt(
+                bytes(row[0]),
+                self.key_manager,
+                associated_data=self._associated_data(self.SECURITY_KEY),
+            )
+            data = json.loads(raw.decode("utf-8"))
+            data["profile"] = SecurityProfile(data.get("profile", "standard"))
+            data["activity_sensitivity"] = ActivitySensitivity(
+                data.get("activity_sensitivity", "medium")
+            )
+            data["device_type"] = DeviceType(data.get("device_type", "desktop"))
+            data["panic_decoy_command"] = tuple(data.get("panic_decoy_command", []))
+            return SecurityHardeningConfig(**data)
+        except SettingsRepositoryError:
+            raise
+        except (
+            KeyError,
+            TypeError,
+            ValueError,
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+            VaultEncryptionError,
+        ) as exc:
+            raise SettingsRepositoryError(
+                "Security settings are invalid or damaged."
+            ) from exc
+
+    def save_security_config(self, config: SecurityHardeningConfig) -> None:
+        if not isinstance(config, SecurityHardeningConfig):
+            raise TypeError("Security settings must use SecurityHardeningConfig.")
+        data = asdict(config)
+        data["profile"] = config.profile.value
+        data["activity_sensitivity"] = config.activity_sensitivity.value
+        data["device_type"] = config.device_type.value
+        data["panic_decoy_command"] = list(config.panic_decoy_command)
+        raw = json.dumps(
+            data, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        try:
+            encrypted = self.encryption.encrypt(
+                raw,
+                self.key_manager,
+                associated_data=self._associated_data(self.SECURITY_KEY),
+            )
+            with self.db.transaction(write=True):
+                self.db.execute(
+                    """
+                    INSERT INTO settings (setting_key, setting_value, encrypted)
+                    VALUES (?, ?, 1)
+                    ON CONFLICT(setting_key) DO UPDATE SET
+                        setting_value = excluded.setting_value,
+                        encrypted = 1;
+                    """,
+                    (self.SECURITY_KEY, encrypted),
+                )
+                self.db.execute(
+                    """
+                    INSERT INTO settings (setting_key, setting_value, encrypted)
+                    VALUES ('auto_lock_timeout', ?, 0)
+                    ON CONFLICT(setting_key) DO UPDATE SET
+                        setting_value = excluded.setting_value,
+                        encrypted = 0;
+                    """,
+                    (str(config.auto_lock_timeout_seconds),),
+                )
+        except Exception as exc:
+            raise SettingsRepositoryError(
+                "Security settings could not be saved. Previous settings were kept."
+            ) from exc
 
     @classmethod
     def _associated_data(cls, setting_key: str) -> bytes:

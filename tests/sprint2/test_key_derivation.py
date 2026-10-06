@@ -4,20 +4,24 @@ from src.core.crypto.key_derivation import (
     get_password_rule_status,
 )
 
+
 def test_password_validation_ok():
     result = validate_password("StrongPass123!")
 
     assert result.ok is True
+
 
 def test_password_validation_rejects_short_password():
     result = validate_password("Aa1!")
 
     assert result.ok is False
 
+
 def test_password_validation_rejects_weak_pattern():
     result = validate_password("Password123!")
 
     assert result.ok is False
+
 
 def test_auth_hash_verify_success():
     service = KeyDerivationService()
@@ -26,12 +30,14 @@ def test_auth_hash_verify_success():
 
     assert service.verify_password("StrongPass123!", auth_hash) is True
 
+
 def test_auth_hash_verify_wrong_password():
     service = KeyDerivationService()
 
     auth_hash = service.create_auth_hash("StrongPass123!").hash
 
     assert service.verify_password("WrongPass123!", auth_hash) is False
+
 
 def test_pbkdf2_key_is_32_bytes():
     service = KeyDerivationService()
@@ -42,6 +48,7 @@ def test_pbkdf2_key_is_32_bytes():
     assert isinstance(key, bytes)
     assert len(key) == 32
 
+
 def test_password_rule_status():
     status = get_password_rule_status("StrongPass123!")
 
@@ -50,6 +57,7 @@ def test_password_rule_status():
     assert status["Есть заглавная буква"] is True
     assert status["Есть цифра"] is True
     assert status["Есть специальный символ"] is True
+
 
 def test_pbkdf2_same_password_and_salt_gives_same_key():
     service = KeyDerivationService()
@@ -60,6 +68,7 @@ def test_pbkdf2_same_password_and_salt_gives_same_key():
     key2 = service.derive_encryption_key("StrongPass123!", salt)
 
     assert key1 == key2
+
 
 def test_pbkdf2_same_password_different_salt_gives_different_keys():
     service = KeyDerivationService()
@@ -72,6 +81,7 @@ def test_pbkdf2_same_password_different_salt_gives_different_keys():
 
     assert key1 != key2
 
+
 def test_auth_hashes_for_same_password_are_different():
     service = KeyDerivationService()
 
@@ -80,10 +90,12 @@ def test_auth_hashes_for_same_password_are_different():
 
     assert hash1 != hash2
 
+
 def test_damaged_auth_hash_returns_false():
     service = KeyDerivationService()
 
     assert service.verify_password("StrongPass123!", "not-a-valid-hash") is False
+
 
 def test_generated_salt_has_expected_length():
     service = KeyDerivationService()
@@ -92,6 +104,7 @@ def test_generated_salt_has_expected_length():
 
     assert isinstance(salt, bytes)
     assert len(salt) == service.pbkdf2_settings.salt_len
+
 
 def test_named_keys_are_different_for_different_purposes():
     service = KeyDerivationService()
@@ -102,19 +115,12 @@ def test_named_keys_are_different_for_different_purposes():
 
     manager = KeyManager()
 
-    vault_key = manager.derive_named_key(
-        "StrongPass123!",
-        salt,
-        "vault"
-    )
+    vault_key = manager.derive_named_key("StrongPass123!", salt, "vault")
 
-    audit_key = manager.derive_named_key(
-        "StrongPass123!",
-        salt,
-        "audit"
-    )
+    audit_key = manager.derive_named_key("StrongPass123!", salt, "audit")
 
     assert vault_key != audit_key
+
 
 def test_named_keys_same_purpose_same_input_same_output():
     from src.core.key_manager import KeyManager
@@ -123,19 +129,12 @@ def test_named_keys_same_purpose_same_input_same_output():
 
     salt = manager.generate_salt()
 
-    key1 = manager.derive_named_key(
-        "StrongPass123!",
-        salt,
-        "vault"
-    )
+    key1 = manager.derive_named_key("StrongPass123!", salt, "vault")
 
-    key2 = manager.derive_named_key(
-        "StrongPass123!",
-        salt,
-        "vault"
-    )
+    key2 = manager.derive_named_key("StrongPass123!", salt, "vault")
 
     assert key1 == key2
+
 
 def test_named_key_requires_purpose():
     from src.core.key_manager import KeyManager
@@ -147,8 +146,4 @@ def test_named_key_requires_purpose():
     import pytest
 
     with pytest.raises(ValueError):
-        manager.derive_named_key(
-            "StrongPass123!",
-            salt,
-            ""
-        )
+        manager.derive_named_key("StrongPass123!", salt, "")

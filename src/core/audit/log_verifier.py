@@ -11,6 +11,8 @@ from .log_signer import AuditLogSigner
 
 
 def canonical_json(data: dict[str, Any]) -> bytes:
+    """Serialize a value as deterministic UTF-8 JSON bytes."""
+
     return json.dumps(
         data,
         ensure_ascii=False,
@@ -20,6 +22,8 @@ def canonical_json(data: dict[str, Any]) -> bytes:
 
 
 def build_anchor_payload(sequence_number: int, entry_hash: str, key_id: str) -> bytes:
+    """Build the canonical payload for an audit head anchor."""
+
     return canonical_json(
         {
             "entry_hash": entry_hash,
@@ -31,6 +35,8 @@ def build_anchor_payload(sequence_number: int, entry_hash: str, key_id: str) -> 
 
 @dataclass
 class VerificationReport:
+    """Store verification report values."""
+
     verified: bool = True
     scope: str = "full"
     total_entries: int = 0
@@ -48,6 +54,8 @@ class VerificationReport:
 
 
 class AuditLogVerifier:
+    """Provide audit log verifier operations."""
+
     REQUIRED_ENTRY_FIELDS: ClassVar[set[str]] = {
         "timestamp",
         "event_type",

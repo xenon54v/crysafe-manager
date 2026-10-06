@@ -2,6 +2,7 @@ import time
 import pytest
 from src.core.crypto.key_storage import KeyStorage
 
+
 def test_key_storage_save_and_load():
     storage = KeyStorage()
 
@@ -9,6 +10,7 @@ def test_key_storage_save_and_load():
     storage.save(key)
 
     assert storage.load() == key
+
 
 def test_key_storage_clear():
     storage = KeyStorage()
@@ -18,11 +20,13 @@ def test_key_storage_clear():
 
     assert storage.has_key() is False
 
+
 def test_key_storage_load_without_key():
     storage = KeyStorage()
 
     with pytest.raises(RuntimeError):
         storage.load()
+
 
 def test_key_storage_expires_after_ttl():
     storage = KeyStorage(ttl_seconds=1)
@@ -37,6 +41,7 @@ def test_key_storage_expires_after_ttl():
 
     with pytest.raises(RuntimeError):
         storage.load()
+
 
 def test_key_storage_clear_removes_key_before_ttl():
     storage = KeyStorage(ttl_seconds=60)

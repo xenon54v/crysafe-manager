@@ -1,0 +1,24 @@
+# Install only after adjusting the executable and data paths for the package.
+abi <abi/4.0>,
+include <tunables/global>
+
+profile cryptosafe-manager /opt/cryptosafe-manager/cryptosafe-manager flags=(attach_disconnected) {
+  include <abstractions/base>
+  include <abstractions/python>
+  include <abstractions/user-tmp>
+
+  /opt/cryptosafe-manager/** r,
+  owner @{HOME}/.local/share/cryptosafe-manager/** rwk,
+  owner @{HOME}/.config/cryptosafe-manager/** rw,
+  /opt/cryptosafe-manager/cryptosafe-manager rix,
+  /usr/bin/python3 rix,
+  /usr/bin/wl-copy rix,
+  /usr/bin/wl-paste rix,
+  /usr/bin/xclip rix,
+  /usr/bin/xsel rix,
+  /usr/bin/xprintidle rix,
+  /usr/bin/loginctl rix,
+
+  deny /proc/*/mem rwklx,
+  deny /proc/kcore rwklx,
+}

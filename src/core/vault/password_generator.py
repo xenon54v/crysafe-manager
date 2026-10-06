@@ -11,6 +11,8 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class PasswordStrength:
+    """Represent password strength behavior."""
+
     score: int
     entropy_bits: float
     label: str
@@ -81,6 +83,8 @@ class PasswordStrengthAnalyzer:
 
 
 class PasswordGenerator:
+    """Provide password generator operations."""
+
     DEFAULT_LENGTH = 16
     MIN_LENGTH = 8
     MAX_LENGTH = 64

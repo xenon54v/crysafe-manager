@@ -1,0 +1,10 @@
+"""Shared visual tokens for the desktop interface."""
+
+PINK = "#d98ca3"
+PINK_HOVER = "#c97c93"
+WINDOW_BG = "#1f1f1f"
+CARD_BG = "#2b2b2b"
+BORDER = "#3a3a3a"
+SUCCESS = "#4ade80"
+WARNING = "#fbbf24"
+ERROR = "#f87171"

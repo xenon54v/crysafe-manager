@@ -13,6 +13,8 @@ class ClipboardAdapterError(RuntimeError):
 
 
 class PlatformClipboardAdapter(ABC):
+    """Adapt platform clipboard adapter behavior to the current platform."""
+
     name = "unknown"
     supports_access_detection = False
 
@@ -33,6 +35,8 @@ class PlatformClipboardAdapter(ABC):
 
 
 class WindowsClipboardAdapter(PlatformClipboardAdapter):
+    """Adapt windows clipboard adapter behavior to the current platform."""
+
     name = "windows"
 
     def __init__(self) -> None:
@@ -94,6 +98,8 @@ class WindowsClipboardAdapter(PlatformClipboardAdapter):
 
 
 class MacOSClipboardAdapter(PlatformClipboardAdapter):
+    """Access the native macOS pasteboard API."""
+
     name = "macos"
 
     def __init__(self, private: bool = False) -> None:
@@ -136,6 +142,8 @@ class MacOSClipboardAdapter(PlatformClipboardAdapter):
 
 
 class LinuxClipboardAdapter(PlatformClipboardAdapter):
+    """Adapt linux clipboard adapter behavior to the current platform."""
+
     name = "linux"
 
     def __init__(self, selection: str = "clipboard") -> None:
@@ -213,6 +221,8 @@ class LinuxClipboardAdapter(PlatformClipboardAdapter):
 
 
 class PyperclipAdapter(PlatformClipboardAdapter):
+    """Adapt pyperclip adapter behavior to the current platform."""
+
     name = "pyperclip"
 
     def __init__(self) -> None:
@@ -264,6 +274,8 @@ class InMemoryClipboardAdapter(PlatformClipboardAdapter):
 
 
 class FallbackClipboardAdapter(PlatformClipboardAdapter):
+    """Adapt fallback clipboard adapter behavior to the current platform."""
+
     def __init__(
         self, primary: PlatformClipboardAdapter, fallback: PlatformClipboardAdapter
     ) -> None:
@@ -295,6 +307,8 @@ class FallbackClipboardAdapter(PlatformClipboardAdapter):
 
 
 def create_platform_adapter(private: bool = False) -> PlatformClipboardAdapter:
+    """Create the best available clipboard adapter for the current OS."""
+
     if private:
         return InMemoryClipboardAdapter()
 

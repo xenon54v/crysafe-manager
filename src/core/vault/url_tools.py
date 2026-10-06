@@ -7,6 +7,8 @@ from urllib.request import Request, urlopen
 
 
 def normalize_url(value: str) -> str:
+    """Normalize an HTTP or HTTPS URL for storage."""
+
     value = value.strip()
     if not value:
         return ""
@@ -22,6 +24,8 @@ def normalize_url(value: str) -> str:
 
 
 def is_valid_url(value: str) -> bool:
+    """Return whether a URL is empty or valid for storage."""
+
     if not value.strip():
         return True
     try:
@@ -32,6 +36,8 @@ def is_valid_url(value: str) -> bool:
 
 
 def extract_domain(value: str) -> str:
+    """Extract a display domain from a URL."""
+
     if not value.strip():
         return ""
     try:

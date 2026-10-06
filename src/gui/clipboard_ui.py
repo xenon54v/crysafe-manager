@@ -5,12 +5,12 @@ import threading
 import customtkinter as ctk
 
 from src.core.clipboard.clipboard_service import ClipboardSnapshot
-
-PINK = "#d98ca3"
-PINK_HOVER = "#c97c93"
+from src.gui.theme import PINK, PINK_HOVER
 
 
 class ClipboardToast(ctk.CTkToplevel):
+    """Show a short non-blocking clipboard notification."""
+
     def __init__(self, master, message: str, warning: bool = False) -> None:
         super().__init__(master)
         self.overrideredirect(True)
@@ -29,6 +29,8 @@ class ClipboardToast(ctk.CTkToplevel):
 
 
 class ClipboardPreviewDialog(ctk.CTkToplevel):
+    """Preview clipboard metadata before explicitly revealing a value."""
+
     def __init__(self, master, snapshot: ClipboardSnapshot, reveal_callback) -> None:
         super().__init__(master)
         self.title("Secure Clipboard Preview")

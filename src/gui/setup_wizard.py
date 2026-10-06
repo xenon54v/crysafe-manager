@@ -6,14 +6,14 @@ import customtkinter as ctk
 
 from src.core.config import ConfigManager
 from src.core.crypto.key_derivation import get_password_rule_status, validate_password
+from src.gui.theme import PINK, PINK_HOVER
 from src.gui.widgets.password_entry import PasswordEntry
-
-PINK = "#d98ca3"
-PINK_HOVER = "#c97c93"
 
 
 @dataclass(frozen=True)
 class SetupResult:
+    """Values collected while creating a new vault."""
+
     master_password: str
     db_path: Path
     enc_scheme: str
@@ -21,10 +21,14 @@ class SetupResult:
 
 @dataclass(frozen=True)
 class LoginResult:
+    """Credentials collected by the unlock dialog."""
+
     master_password: str
 
 
 class SetupWizard(ctk.CTkToplevel):
+    """Guide the user through initial vault configuration."""
+
     def __init__(self, master=None):
         super().__init__(master)
 
@@ -283,6 +287,8 @@ class SetupWizard(ctk.CTkToplevel):
 
 
 class LoginDialog(ctk.CTkToplevel):
+    """Prompt for the master password without exposing it in the UI."""
+
     def __init__(self, master=None):
         super().__init__(master)
 

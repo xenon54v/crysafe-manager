@@ -1,6 +1,8 @@
 import time
 import tracemalloc
 
+import pytest
+
 from src.core.events import (
     ClipboardCopied,
     EntryCreated,
@@ -68,6 +70,7 @@ def test_missing_id_error_does_not_echo_identifier(tmp_path):
     db.close()
 
 
+@pytest.mark.no_cover
 def test_load_search_and_memory_requirements_for_one_thousand_entries(tmp_path):
     db = Database(tmp_path / "performance.db")
     db.connect()

@@ -11,14 +11,14 @@ import customtkinter as ctk
 
 from src.core.vault.password_generator import PasswordGenerator
 from src.core.vault.url_tools import fetch_favicon, normalize_url
+from src.gui.theme import PINK, PINK_HOVER
 from src.gui.widgets.password_entry import PasswordEntry
-
-PINK = "#d98ca3"
-PINK_HOVER = "#c97c93"
 
 
 @dataclass(frozen=True)
 class EntryResult:
+    """Validated values returned by an entry editor."""
+
     title: str
     username: str
     password: str
@@ -34,6 +34,8 @@ class EntryResult:
 
 
 class PasswordGeneratorDialog(ctk.CTkToplevel):
+    """Configure and run the password generator."""
+
     def __init__(self, master, generator: PasswordGenerator) -> None:
         super().__init__(master)
         self.generator = generator
@@ -118,6 +120,8 @@ class PasswordGeneratorDialog(ctk.CTkToplevel):
 
 
 class EntryDialog(ctk.CTkToplevel):
+    """Create or edit a vault entry with field validation."""
+
     def __init__(
         self,
         master=None,

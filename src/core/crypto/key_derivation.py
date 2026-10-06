@@ -38,6 +38,8 @@ COMMON_WEAK_SUBSTRINGS = [
 
 @dataclass(frozen=True)
 class PasswordPolicy:
+    """Represent password policy behavior."""
+
     min_length: int = 12
     require_uppercase: bool = True
     require_lowercase: bool = True
@@ -47,6 +49,8 @@ class PasswordPolicy:
 
 @dataclass(frozen=True)
 class PasswordValidationResult:
+    """Store password validation result values."""
+
     ok: bool
     message: str
 
@@ -54,6 +58,8 @@ class PasswordValidationResult:
 def validate_password(
     password: str, policy: PasswordPolicy | None = None
 ) -> PasswordValidationResult:
+    """Validate a password against the configured policy."""
+
     policy = policy or PasswordPolicy()
 
     if not isinstance(password, str) or not password:
@@ -96,11 +102,15 @@ def validate_password(
 
 @dataclass(frozen=True)
 class AuthHashResult:
+    """Store auth hash result values."""
+
     hash: str
 
 
 @dataclass(frozen=True)
 class Argon2Settings:
+    """Store argon2 settings values."""
+
     time_cost: int = 3
     memory_cost: int = 65536
     parallelism: int = 4
@@ -109,6 +119,8 @@ class Argon2Settings:
 
 @dataclass(frozen=True)
 class PBKDF2Settings:
+    """Store PBKDF2 derivation parameters."""
+
     iterations: int = 200_000
     salt_len: int = 16
     key_len: int = 32
@@ -118,6 +130,8 @@ class PBKDF2Settings:
 
 
 class KeyDerivationService:
+    """Provide key derivation service operations."""
+
     def __init__(
         self,
         argon2_settings: Argon2Settings | None = None,
@@ -169,6 +183,8 @@ class KeyDerivationService:
 def get_password_rule_status(
     password: str, policy: PasswordPolicy | None = None
 ) -> dict[str, bool]:
+    """Return the current password-policy rule results."""
+
     policy = policy or PasswordPolicy()
 
     if not isinstance(password, str):

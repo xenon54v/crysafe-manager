@@ -1,10 +1,12 @@
 import customtkinter as ctk
 from tkinter import messagebox
 
-PINK = "#d98ca3"
-PINK_HOVER = "#c97c93"
+from src.gui.theme import PINK, PINK_HOVER
+
 
 class ChangePasswordDialog(ctk.CTkToplevel):
+    """Collect and validate a master-password rotation request."""
+
     def __init__(self, master=None):
         super().__init__(master)
 
@@ -23,28 +25,22 @@ class ChangePasswordDialog(ctk.CTkToplevel):
         self.title_label = ctk.CTkLabel(
             self,
             text="Change master password",
-            font=ctk.CTkFont(size=22, weight="bold")
+            font=ctk.CTkFont(size=22, weight="bold"),
         )
         self.title_label.pack(pady=(20, 15))
 
         self.old_password_entry = ctk.CTkEntry(
-            self,
-            placeholder_text="Current password",
-            show="*"
+            self, placeholder_text="Current password", show="*"
         )
         self.old_password_entry.pack(fill="x", padx=30, pady=8)
 
         self.new_password_entry = ctk.CTkEntry(
-            self,
-            placeholder_text="New password",
-            show="*"
+            self, placeholder_text="New password", show="*"
         )
         self.new_password_entry.pack(fill="x", padx=30, pady=8)
 
         self.confirm_password_entry = ctk.CTkEntry(
-            self,
-            placeholder_text="Confirm new password",
-            show="*"
+            self, placeholder_text="Confirm new password", show="*"
         )
         self.confirm_password_entry.pack(fill="x", padx=30, pady=8)
 
@@ -54,7 +50,7 @@ class ChangePasswordDialog(ctk.CTkToplevel):
             command=self._change_password,
             fg_color=PINK,
             hover_color=PINK_HOVER,
-            text_color="white"
+            text_color="white",
         )
         self.change_button.pack(fill="x", padx=30, pady=(20, 8))
 
@@ -64,7 +60,7 @@ class ChangePasswordDialog(ctk.CTkToplevel):
             command=self.destroy,
             fg_color=PINK,
             hover_color=PINK_HOVER,
-            text_color="white"
+            text_color="white",
         )
         self.cancel_button.pack(fill="x", padx=30, pady=8)
 
@@ -74,17 +70,11 @@ class ChangePasswordDialog(ctk.CTkToplevel):
         confirm_password = self.confirm_password_entry.get()
 
         if not old_password or not new_password:
-            messagebox.showwarning(
-                "Change password",
-                "Fill all password fields."
-            )
+            messagebox.showwarning("Change password", "Fill all password fields.")
             return
 
         if new_password != confirm_password:
-            messagebox.showerror(
-                "Change password",
-                "New passwords do not match."
-            )
+            messagebox.showerror("Change password", "New passwords do not match.")
             return
 
         self.result = {

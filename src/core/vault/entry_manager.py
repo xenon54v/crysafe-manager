@@ -114,6 +114,40 @@ class EntryManager:
         except Exception as exc:
             raise EntryManagerError("Vault operation could not be completed.") from exc
 
+    def count_entries(self) -> int:
+        try:
+            with self._transaction(write=False):
+                row = self.db.execute(
+                    "SELECT COUNT(*) AS count FROM vault_entries;"
+                ).fetchone()
+            return int(row["count"] if row is not None else 0)
+        except Exception as exc:
+            raise EntryManagerError("Vault operation could not be completed.") from exc
+
+    def get_entries_page(
+        self, *, offset: int = 0, limit: int = 250
+    ) -> list[dict[str, Any]]:
+        if offset < 0:
+            raise ValueError("Entry page offset must not be negative.")
+        if not 1 <= limit <= 1000:
+            raise ValueError("Entry page limit must be between 1 and 1000.")
+        try:
+            with self._transaction(write=False):
+                rows = self.db.execute(
+                    """
+                    SELECT id, encrypted_data, created_at, updated_at, tags
+                    FROM vault_entries
+                    ORDER BY updated_at DESC
+                    LIMIT ? OFFSET ?;
+                    """,
+                    (limit, offset),
+                ).fetchall()
+                entries = [self._row_to_entry(row) for row in rows]
+            self._publish_event(VaultAccessed("VaultAccessed", now_utc(), "page", None))
+            return entries
+        except Exception as exc:
+            raise EntryManagerError("Vault operation could not be completed.") from exc
+
     def update_entry(
         self,
         entry_id: str,
@@ -124,6 +158,8 @@ class EntryManager:
                 current = self._get_entry(entry_id)
                 if current is None:
                     raise EntryManagerError("Vault operation could not be completed.")
+                if bool(current.get("sharing_metadata", {}).get("read_only", False)):
+                    raise EntryManagerError("This shared entry is read-only.")
 
                 merged = dict(current)
                 merged.update(data_dict)

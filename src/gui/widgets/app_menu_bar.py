@@ -1,8 +1,11 @@
 import tkinter as tk
+
 import customtkinter as ctk
 
 
 class AppMenuBar(ctk.CTkFrame):
+    """Represent app menu bar behavior."""
+
     def __init__(self, parent, actions: dict):
         super().__init__(parent, height=36, corner_radius=0)
 
@@ -19,6 +22,8 @@ class AppMenuBar(ctk.CTkFrame):
                 ("New", self.actions["new"]),
                 ("Open", self.actions["open"]),
                 ("Backup", self.actions["backup"]),
+                ("Export", self.actions["export"]),
+                ("Import", self.actions["import"]),
                 ("separator", None),
                 ("Logout", self.actions["logout"]),
                 ("Exit", self.actions["exit"]),
@@ -33,6 +38,8 @@ class AppMenuBar(ctk.CTkFrame):
                 ("Add", self.actions["add"]),
                 ("Edit", self.actions["edit"]),
                 ("Delete", self.actions["delete"]),
+                ("Share", self.actions["share"]),
+                ("Receive Share", self.actions["receive_share"]),
             ],
         )
 
@@ -41,13 +48,25 @@ class AppMenuBar(ctk.CTkFrame):
             column=2,
             items=[
                 ("Logs", self.actions["logs"]),
+                ("Contacts", self.actions["contacts"]),
+                ("Settings", self.actions["settings"]),
+            ],
+        )
+
+        self._create_menu_button(
+            text="Security",
+            column=3,
+            items=[
+                ("Lock Vault", self.actions["lock"]),
+                ("Panic Mode", self.actions["panic"]),
+                ("separator", None),
                 ("Settings", self.actions["settings"]),
             ],
         )
 
         self._create_menu_button(
             text="Help",
-            column=3,
+            column=4,
             items=[
                 ("About", self.actions["about"]),
             ],
@@ -62,7 +81,7 @@ class AppMenuBar(ctk.CTkFrame):
             fg_color="transparent",
             hover_color=("gray80", "gray25"),
             text_color=("gray10", "gray90"),
-            command=lambda: self._show_dropdown(button, items)
+            command=lambda: self._show_dropdown(button, items),
         )
         button.grid(row=0, column=column, padx=padx, pady=4)
         return button
@@ -74,22 +93,14 @@ class AppMenuBar(ctk.CTkFrame):
         self.dropdown_window.overrideredirect(True)
         self.dropdown_window.attributes("-topmost", True)
 
-        frame = ctk.CTkFrame(
-            self.dropdown_window,
-            corner_radius=10,
-            border_width=1
-        )
+        frame = ctk.CTkFrame(self.dropdown_window, corner_radius=10, border_width=1)
         frame.pack(fill="both", expand=True, padx=2, pady=2)
 
         row = 0
 
         for label, command in items:
             if label == "separator":
-                separator = ctk.CTkFrame(
-                    frame,
-                    height=1,
-                    fg_color=("gray70", "gray35")
-                )
+                separator = ctk.CTkFrame(frame, height=1, fg_color=("gray70", "gray35"))
                 separator.grid(row=row, column=0, sticky="ew", padx=8, pady=4)
                 row += 1
                 continue
@@ -103,7 +114,7 @@ class AppMenuBar(ctk.CTkFrame):
                 fg_color="transparent",
                 hover_color=("gray80", "gray25"),
                 text_color=("gray10", "gray90"),
-                command=lambda cmd=command: self._run_command(cmd)
+                command=lambda cmd=command: self._run_command(cmd),
             )
             item_button.grid(row=row, column=0, sticky="ew", padx=6, pady=3)
             row += 1

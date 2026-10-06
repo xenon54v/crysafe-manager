@@ -9,15 +9,20 @@ from tkinter import ttk
 import customtkinter as ctk
 
 from src.core.vault.url_tools import extract_domain
+from src.gui.theme import BORDER, CARD_BG, PINK
 
 
 def mask_username(username: str) -> str:
+    """Mask a username while retaining a short recognition prefix."""
+
     if not username:
         return ""
     return f"{username[:4]}••••"
 
 
 def format_modified(value: str) -> str:
+    """Format an ISO timestamp for the local interface."""
+
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except (AttributeError, ValueError):
@@ -26,6 +31,8 @@ def format_modified(value: str) -> str:
 
 
 class SecureTable(ctk.CTkFrame):
+    """Display vault entries with masked sensitive fields and safe actions."""
+
     COLUMNS = (
         "Title",
         "Username",
@@ -328,21 +335,21 @@ class SecureTable(ctk.CTkFrame):
         style.theme_use("default")
         style.configure(
             "Treeview",
-            background="#2b2b2b",
+            background=CARD_BG,
             foreground="white",
-            fieldbackground="#2b2b2b",
+            fieldbackground=CARD_BG,
             rowheight=38,
             borderwidth=0,
             font=("Segoe UI", 12),
         )
         style.map(
             "Treeview",
-            background=[("selected", "#d98ca3")],
+            background=[("selected", PINK)],
             foreground=[("selected", "white")],
         )
         style.configure(
             "Treeview.Heading",
-            background="#3a3a3a",
+            background=BORDER,
             foreground="white",
             font=("Segoe UI", 12, "bold"),
             relief="flat",

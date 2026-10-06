@@ -1,11 +1,11 @@
-﻿import customtkinter as ctk
+import customtkinter as ctk
 
-
-PINK = "#d98ca3"
-PINK_HOVER = "#c97c93"
+from src.gui.theme import PINK, PINK_HOVER
 
 
 class PasswordEntry(ctk.CTkFrame):
+    """Password entry widget that blocks ordinary clipboard shortcuts."""
+
     def __init__(self, master=None, **kwargs):
         super().__init__(master, fg_color="transparent")
 
@@ -32,9 +32,12 @@ class PasswordEntry(ctk.CTkFrame):
 
     def _bind_clipboard_protection(self) -> None:
         sequences = (
-            "<Control-c>", "<Control-C>",
-            "<Control-x>", "<Control-X>",
-            "<Control-v>", "<Control-V>",
+            "<Control-c>",
+            "<Control-C>",
+            "<Control-x>",
+            "<Control-X>",
+            "<Control-v>",
+            "<Control-V>",
             "<Control-Insert>",
             "<Shift-Insert>",
             "<<Copy>>",
@@ -54,9 +57,12 @@ class PasswordEntry(ctk.CTkFrame):
         root = self.winfo_toplevel()
 
         for sequence in (
-            "<Control-c>", "<Control-C>",
-            "<Control-x>", "<Control-X>",
-            "<Control-v>", "<Control-V>",
+            "<Control-c>",
+            "<Control-C>",
+            "<Control-x>",
+            "<Control-X>",
+            "<Control-v>",
+            "<Control-V>",
             "<<Copy>>",
             "<<Cut>>",
             "<<Paste>>",
@@ -67,9 +73,12 @@ class PasswordEntry(ctk.CTkFrame):
         root = self.winfo_toplevel()
 
         for sequence in (
-            "<Control-c>", "<Control-C>",
-            "<Control-x>", "<Control-X>",
-            "<Control-v>", "<Control-V>",
+            "<Control-c>",
+            "<Control-C>",
+            "<Control-x>",
+            "<Control-X>",
+            "<Control-v>",
+            "<Control-V>",
             "<<Copy>>",
             "<<Cut>>",
             "<<Paste>>",

@@ -12,15 +12,12 @@ import customtkinter as ctk
 
 from src.core.audit import AuditLogExporter, AuditQuery
 from src.core.audit.log_verifier import AuditLogVerifier, VerificationReport
-
-PINK = "#d98ca3"
-PINK_HOVER = "#c97c93"
-WINDOW_BG = "#1f1f1f"
-CARD_BG = "#2b2b2b"
-BORDER = "#3a3a3a"
+from src.gui.theme import BORDER, CARD_BG, PINK, PINK_HOVER, WINDOW_BG
 
 
 class AuditLogViewer(ctk.CTkToplevel):
+    """Display, filter, verify, and export signed audit records."""
+
     COLUMN_MAP: ClassVar[dict[str, str]] = {
         "Seq": "sequence_number",
         "Time": "timestamp",

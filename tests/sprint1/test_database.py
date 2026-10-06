@@ -1,4 +1,4 @@
-﻿def test_tables_created(test_db):
+def test_tables_created(test_db):
     cursor = test_db.execute(
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"
     )
@@ -9,6 +9,7 @@
     assert "audit_log" in tables
     assert "settings" in tables
     assert "key_store" in tables
+
 
 def test_key_store_has_sprint2_columns(test_db):
     cursor = test_db.execute("PRAGMA table_info(key_store);")

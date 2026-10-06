@@ -2,6 +2,8 @@ import customtkinter as ctk
 
 
 class CustomDialog(ctk.CTkToplevel):
+    """Present the custom dialog interface."""
+
     def __init__(
         self,
         parent,
@@ -42,10 +44,7 @@ class CustomDialog(ctk.CTkToplevel):
         self.focus_force()
 
     def _create_header(self, title: str, dialog_type: str):
-        self.header_frame = ctk.CTkFrame(
-            self,
-            corner_radius=14
-        )
+        self.header_frame = ctk.CTkFrame(self, corner_radius=14)
         self.header_frame.grid(row=0, column=0, sticky="ew", padx=22, pady=(22, 12))
         self.header_frame.grid_columnconfigure(1, weight=1)
 
@@ -55,7 +54,7 @@ class CustomDialog(ctk.CTkToplevel):
             self.header_frame,
             text=icon_text,
             font=ctk.CTkFont(size=30, weight="bold"),
-            width=48
+            width=48,
         )
         self.icon_label.grid(row=0, column=0, padx=(18, 12), pady=18)
 
@@ -63,15 +62,12 @@ class CustomDialog(ctk.CTkToplevel):
             self.header_frame,
             text=title,
             font=ctk.CTkFont(size=24, weight="bold"),
-            anchor="w"
+            anchor="w",
         )
         self.title_label.grid(row=0, column=1, sticky="ew", pady=18)
 
     def _create_message_area(self, message: str):
-        self.message_frame = ctk.CTkScrollableFrame(
-            self,
-            corner_radius=14
-        )
+        self.message_frame = ctk.CTkScrollableFrame(self, corner_radius=14)
         self.message_frame.grid(row=1, column=0, sticky="nsew", padx=22, pady=(0, 12))
         self.message_frame.grid_columnconfigure(0, weight=1)
 
@@ -81,7 +77,7 @@ class CustomDialog(ctk.CTkToplevel):
             font=ctk.CTkFont(size=15),
             wraplength=470,
             justify="left",
-            anchor="w"
+            anchor="w",
         )
         self.message_label.grid(row=0, column=0, sticky="ew", padx=14, pady=14)
 
@@ -95,16 +91,12 @@ class CustomDialog(ctk.CTkToplevel):
                 text="Yes",
                 width=130,
                 height=38,
-                command=self._on_yes
+                command=self._on_yes,
             )
             self.yes_button.pack(side="left", padx=8)
 
             self.no_button = ctk.CTkButton(
-                self.buttons_frame,
-                text="No",
-                width=130,
-                height=38,
-                command=self._on_no
+                self.buttons_frame, text="No", width=130, height=38, command=self._on_no
             )
             self.no_button.pack(side="left", padx=8)
         else:
@@ -113,7 +105,7 @@ class CustomDialog(ctk.CTkToplevel):
                 text=ok_text,
                 width=160,
                 height=38,
-                command=self._on_ok
+                command=self._on_ok,
             )
             self.ok_button.pack(padx=8)
 

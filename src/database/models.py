@@ -1,4 +1,4 @@
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 ZERO_HASH = "0" * 64
 
@@ -113,6 +113,80 @@ CREATE_TABLES_SQL = [
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
     """,
+    """
+    CREATE TABLE IF NOT EXISTS shared_entries (
+        shared_id TEXT PRIMARY KEY,
+        original_entry_id TEXT NOT NULL,
+        encryption_method TEXT NOT NULL,
+        recipient_info TEXT NOT NULL,
+        permissions TEXT NOT NULL,
+        package_checksum TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active'
+            CHECK (status IN ('active', 'expired', 'revoked', 'imported')),
+        shared_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL
+    );
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS import_export_history (
+        operation_id TEXT PRIMARY KEY,
+        operation_type TEXT NOT NULL
+            CHECK (operation_type IN ('import', 'export')),
+        format TEXT NOT NULL,
+        encryption_method TEXT NOT NULL,
+        entry_count INTEGER NOT NULL,
+        file_size INTEGER NOT NULL,
+        checksum TEXT NOT NULL,
+        verification_status TEXT NOT NULL,
+        details TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL
+    );
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS contacts (
+        contact_id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        identifier TEXT NOT NULL UNIQUE,
+        algorithm TEXT NOT NULL,
+        public_key BLOB NOT NULL,
+        fingerprint TEXT NOT NULL,
+        verified INTEGER NOT NULL DEFAULT 0 CHECK (verified IN (0,1)),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        last_used_at TEXT,
+        revoked_at TEXT
+    );
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS contact_keys (
+        key_id TEXT PRIMARY KEY,
+        contact_id TEXT NOT NULL,
+        algorithm TEXT NOT NULL,
+        public_key BLOB NOT NULL,
+        fingerprint TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL,
+        revoked_at TEXT,
+        FOREIGN KEY (contact_id) REFERENCES contacts(contact_id) ON DELETE CASCADE
+    );
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS import_checkpoints (
+        checkpoint_id TEXT PRIMARY KEY,
+        source_checksum TEXT NOT NULL,
+        format TEXT NOT NULL,
+        next_index INTEGER NOT NULL,
+        imported_count INTEGER NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS exchange_nonces (
+        nonce TEXT PRIMARY KEY,
+        purpose TEXT NOT NULL,
+        used_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL
+    );
+    """,
 ]
 
 CREATE_INDEXES_SQL = [
@@ -131,6 +205,15 @@ CREATE_INDEXES_SQL = [
     "CREATE INDEX IF NOT EXISTS idx_audit_incident_timestamp ON audit_incidents(timestamp);",
     "CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(setting_key);",
     "CREATE INDEX IF NOT EXISTS idx_key_store_type ON key_store(key_type);",
+    "CREATE INDEX IF NOT EXISTS idx_shared_entries_original ON shared_entries(original_entry_id);",
+    "CREATE INDEX IF NOT EXISTS idx_shared_entries_recipient ON shared_entries(recipient_info);",
+    "CREATE INDEX IF NOT EXISTS idx_shared_entries_expires ON shared_entries(expires_at);",
+    "CREATE INDEX IF NOT EXISTS idx_exchange_history_created ON import_export_history(created_at);",
+    "CREATE INDEX IF NOT EXISTS idx_exchange_history_type ON import_export_history(operation_type);",
+    "CREATE INDEX IF NOT EXISTS idx_contacts_fingerprint ON contacts(fingerprint);",
+    "CREATE INDEX IF NOT EXISTS idx_contacts_last_used ON contacts(last_used_at);",
+    "CREATE INDEX IF NOT EXISTS idx_contact_keys_contact ON contact_keys(contact_id);",
+    "CREATE INDEX IF NOT EXISTS idx_exchange_nonces_expires ON exchange_nonces(expires_at);",
 ]
 
 CREATE_TRIGGERS_SQL = [

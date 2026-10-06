@@ -20,6 +20,8 @@ class AuditSigningError(RuntimeError):
 
 @dataclass(frozen=True)
 class AuditPublicKey:
+    """Store audit public key values."""
+
     key_id: str
     algorithm: str
     generation: int

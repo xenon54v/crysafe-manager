@@ -9,11 +9,14 @@ from difflib import SequenceMatcher
 from typing import Any
 
 from src.core.events import EventBus, SearchPerformed, now_utc
+from src.core.security.side_channel_protection import SideChannelProtection
 from src.core.vault.password_generator import PasswordStrengthAnalyzer
 
 
 @dataclass(frozen=True)
 class SearchFilters:
+    """Represent search filters behavior."""
+
     category: str = ""
     tag: str = ""
     updated_from: datetime | None = None
@@ -40,11 +43,13 @@ class VaultSearchIndex:
         self,
         event_bus: EventBus | None = None,
         strength_analyzer: PasswordStrengthAnalyzer | None = None,
+        side_channel_protection: SideChannelProtection | None = None,
     ) -> None:
         self._records: list[_SearchRecord] = []
         self._history: deque[str] = deque(maxlen=10)
         self._event_bus = event_bus
         self._strength_analyzer = strength_analyzer or PasswordStrengthAnalyzer()
+        self._side_channel = side_channel_protection or SideChannelProtection()
 
     def rebuild(self, entries: Iterable[dict[str, Any]]) -> None:
         self.clear()
@@ -81,12 +86,12 @@ class VaultSearchIndex:
     ) -> list[dict[str, Any]]:
         filters = filters or SearchFilters()
         field_terms, general_terms = self._parse_query(query)
-        results = [
-            record.entry
-            for record in self._records
-            if self._matches_terms(record, field_terms, general_terms)
-            and self._matches_filters(record.entry, filters)
-        ]
+        results = []
+        for record in self._records:
+            terms_match = self._matches_terms(record, field_terms, general_terms)
+            filters_match = self._matches_filters(record.entry, filters)
+            if terms_match & filters_match:
+                results.append(record.entry)
 
         normalized_query = query.strip()
         if normalized_query:
@@ -108,43 +113,52 @@ class VaultSearchIndex:
         field_terms: list[tuple[str, str]],
         general_terms: list[str],
     ) -> bool:
+        matches = 1
         for field, term in field_terms:
             mapped_field = "tags" if field in {"tag", "tags"} else field
-            if not self._matches_text(record.fields[mapped_field], term):
-                return False
-        return all(self._matches_text(record.all_text, term) for term in general_terms)
+            matches &= int(self._matches_text(record.fields[mapped_field], term))
+        for term in general_terms:
+            matches &= int(self._matches_text(record.all_text, term))
+        return bool(matches)
 
     def _matches_filters(self, entry: dict[str, Any], filters: SearchFilters) -> bool:
-        if filters.category and self._normalize(
-            entry.get("category", "")
-        ) != self._normalize(filters.category):
-            return False
+        matches = 1
+        if filters.category:
+            matches &= int(
+                self._side_channel.secure_string_compare(
+                    self._normalize(entry.get("category", "")),
+                    self._normalize(filters.category),
+                )
+            )
 
         if filters.tag:
             tags = entry.get("tags", [])
             if isinstance(tags, str):
                 tags = tags.split(",")
             normalized_tags = {self._normalize(tag) for tag in tags}
-            if self._normalize(filters.tag) not in normalized_tags:
-                return False
+            target = self._normalize(filters.tag)
+            tag_match = 0
+            for tag in normalized_tags:
+                tag_match |= int(self._side_channel.secure_string_compare(tag, target))
+            matches &= tag_match
 
         updated_at = self._parse_datetime(entry.get("updated_at"))
         if filters.updated_from and (
             updated_at is None or updated_at < filters.updated_from
         ):
-            return False
+            matches = 0
         if filters.updated_to and (
             updated_at is None or updated_at > filters.updated_to
         ):
-            return False
+            matches = 0
 
         if filters.minimum_strength is not None:
             score = self._strength_analyzer.analyze(
                 str(entry.get("password", ""))
             ).score
             if score < filters.minimum_strength:
-                return False
-        return True
+                matches = 0
+        return bool(matches)
 
     def _parse_query(self, query: str) -> tuple[list[tuple[str, str]], list[str]]:
         field_terms: list[tuple[str, str]] = []
@@ -162,21 +176,21 @@ class VaultSearchIndex:
         ]
         return field_terms, general_terms
 
-    @staticmethod
-    def _matches_text(text: str, term: str) -> bool:
+    def _matches_text(self, text: str, term: str) -> bool:
         if not term:
             return True
-        if term in text:
+        if self._side_channel.constant_time_contains(text, term):
             return True
         if len(term) < 3:
             return False
 
         words = re.findall(r"[\w@.-]+", text)
-        return any(
-            abs(len(word) - len(term)) <= 2
-            and SequenceMatcher(None, word, term, autojunk=False).ratio() >= 0.78
-            for word in words
-        )
+        found = 0
+        for word in words:
+            comparable = abs(len(word) - len(term)) <= 2
+            ratio = SequenceMatcher(None, word, term, autojunk=False).ratio()
+            found |= int(comparable and ratio >= 0.78)
+        return bool(found)
 
     @staticmethod
     def _normalize(value: Any) -> str:

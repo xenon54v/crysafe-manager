@@ -1,0 +1,21 @@
+[Unit]
+Description=CryptoSafe Manager desktop session
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.local/share/cryptosafe-manager
+ExecStart=/usr/bin/env python3 -m src.main
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.local/share/cryptosafe-manager
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=graphical-session.target

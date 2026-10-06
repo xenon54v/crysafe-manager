@@ -1,8 +1,9 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import secrets
 
 from .abstract import EncryptionService
+
 
 def _xor_bytes(data: bytes, key: bytes) -> bytes:
     if not key:
@@ -10,11 +11,17 @@ def _xor_bytes(data: bytes, key: bytes) -> bytes:
     # repeat key over data
     return bytes(b ^ key[i % len(key)] for i, b in enumerate(data))
 
+
 def zero_bytes(buf: bytearray) -> None:
+    """Overwrite a mutable byte buffer."""
+
     for i in range(len(buf)):
         buf[i] = 0
 
+
 class AES256Placeholder(EncryptionService):
+    """Provide the legacy test-only encryption placeholder."""
+
     def encrypt(self, data: bytes, key_manager) -> bytes:
         key = key_manager.get_active_key()
         nonce = secrets.token_bytes(16)
